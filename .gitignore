@@ -1,0 +1,15 @@
+.vs/
+
+*Build/
+*Saved/
+*Binaries/
+*Intermediate/
+*Content/Developers/
+
+*.sln
+*_BuiltData*
+
+!*Build/**/*.ico
+
+!Plugins/FMODStudio/Binaries/
+Plugins/FMODStudio/Binaries/**/UE4*
