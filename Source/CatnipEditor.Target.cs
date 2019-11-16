@@ -9,5 +9,5 @@ public class CatnipEditorTarget : TargetRules
 	{
 		Type = TargetType.Editor;
 		ExtraModuleNames.Add("Catnip");
-	}
+    }
 }

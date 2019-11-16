@@ -9,5 +9,5 @@ public class CatnipTarget : TargetRules
 	{
 		Type = TargetType.Game;
 		ExtraModuleNames.Add("Catnip");
-	}
+    }
 }

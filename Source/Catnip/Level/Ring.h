@@ -1,0 +1,61 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "Ring.generated.h"
+
+class USplineComponent;
+
+UCLASS()
+class CATNIP_API ARing : public AActor
+{
+	GENERATED_BODY()
+	
+public:	
+	ARing();
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
+
+public:	
+	virtual void Tick(float DeltaTime) override;
+
+	void UpdatePoints(UStaticMesh *Mesh);
+
+	void UpdateRingOpacity(float RingOpacity);
+
+protected:
+	UPROPERTY(EditAnywhere)
+	float RingRadius;
+
+	UPROPERTY(EditAnywhere)
+	int32 RingResolution;
+
+	UPROPERTY()
+	UStaticMeshComponent *StaticMeshComponent;
+
+	UPROPERTY(VisibleAnywhere)
+	USceneComponent *SceneComponent;
+
+	UPROPERTY(VisibleAnywhere)
+	USplineComponent *SplineComponent;
+
+	UPROPERTY(EditDefaultsOnly)
+	UMaterialInterface *MaterialInterface;
+
+	UPROPERTY()
+	UMaterialInstanceDynamic *MaterialInstanceDynamic;
+
+private:
+	float Opacity;
+};
+
+/// INLINE ///
+
+FORCEINLINE void ARing::UpdateRingOpacity(float RingOpacity)
+{
+	this->Opacity = RingOpacity;
+}
