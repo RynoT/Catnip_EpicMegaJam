@@ -5,6 +5,7 @@
 *Binaries/
 *Intermediate/
 *Content/Developers/
+*Packaged/
 
 *.sln
 *_BuiltData*
