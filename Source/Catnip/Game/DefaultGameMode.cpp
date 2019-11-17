@@ -3,11 +3,14 @@
 
 #include "DefaultGameMode.h"
 
+#include "Level/Ring.h"
 #include "Engine/World.h"
 #include "Level/RingHandler.h"
 #include "Player/CatCharacter.h"
+#include "Camera/CameraComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
+#include "GameFramework/SpringArmComponent.h"
 
 #if WITH_EDITOR
 #include "EditorLevelLibrary.h"
@@ -23,7 +26,7 @@ ADefaultGameMode::ADefaultGameMode()
 	}
 
 	this->MovementSpeed = 1500.0f;
-	this->CurrentDistance = 0.0f;
+	this->CurrentDistance = -6000.0f;
 
 	Super::PrimaryActorTick.bCanEverTick = true;
 }
@@ -32,20 +35,25 @@ void ADefaultGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	TArray<AActor*> Actors;
-	UGameplayStatics::GetAllActorsOfClass(Super::GetWorld(), ARingHandler::StaticClass(), Actors);
+	TArray<AActor*> TempArray;
 
-	if (ensure(Actors.Num() == 1))
+	// Destroy all exisiting rings.
+	UGameplayStatics::GetAllActorsOfClass(Super::GetWorld(), ARing::StaticClass(), TempArray);
+	for (int32 i = TempArray.Num() - 1; i >= 0; --i)
 	{
-		this->RingHandler = Cast<ARingHandler>(Actors[0]);
+		if (TempArray[i] != nullptr)
+		{
+			TempArray[i]->Destroy();
+		}
 	}
+	TempArray.Empty();
 
-	//ensure(Actors.Num() <= 1);
-	//if (Actors.Num() == 0)
-	//{
-	//	this->RingHandler = Super::GetWorld()->SpawnActor<ARingHandler>(ARingHandler::StaticClass());
-	//	ensure(this->RingHandler != nullptr);
-	//}
+	// Set the ring handler. It should already be placed in-world.
+	UGameplayStatics::GetAllActorsOfClass(Super::GetWorld(), ARingHandler::StaticClass(), TempArray);
+	if (ensure(TempArray.Num() == 1))
+	{
+		this->RingHandler = Cast<ARingHandler>(TempArray[0]);
+	}
 }
 
 void ADefaultGameMode::Tick(float DeltaTime)
@@ -71,14 +79,20 @@ void ADefaultGameMode::Tick(float DeltaTime)
 		UEditorLevelLibrary::GetLevelViewportCameraInfo(TempLocation, TempRotation);
 
 		LocationUpdate = this->RingHandler->FindLocationClosestTo(TempLocation);
-	} else
+	} 
+	else
 #endif
-	LocationUpdate = this->RingHandler->GetLocationAtDistance(this->CurrentDistance);
-
-	APawn *Pawn = Controller->GetPawn();
-	if (Pawn != nullptr)
 	{
-		Pawn->SetActorLocation(LocationUpdate);
+		LocationUpdate = this->RingHandler->GetLocationAtDistance(this->CurrentDistance);
+	}
+
+	ACatCharacter *Character = Cast<ACatCharacter>(Controller->GetPawn());
+	if (Character != nullptr)
+	{
+		FRotator RotationUpdate = this->RingHandler->GetRotationAtDistance(this->CurrentDistance);
+		Character->SetActorLocationAndRotation(LocationUpdate, RotationUpdate);
+
+		Character->GetCamera()->SetWorldRotation(RotationUpdate);
 	}
 	this->RingHandler->UpdatePawnLocation(LocationUpdate);
 }

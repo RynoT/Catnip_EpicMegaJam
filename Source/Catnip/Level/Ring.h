@@ -50,12 +50,13 @@ protected:
 	UMaterialInstanceDynamic *MaterialInstanceDynamic;
 
 private:
-	float Opacity;
+	float LastOpacity;
+	float RequiredOpacity;
 };
 
 /// INLINE ///
 
 FORCEINLINE void ARing::UpdateRingOpacity(float RingOpacity)
 {
-	this->Opacity = RingOpacity;
+	this->RequiredOpacity = RingOpacity;
 }

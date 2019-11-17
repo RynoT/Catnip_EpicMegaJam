@@ -32,6 +32,8 @@ public:
 
 	FVector GetLocationAtDistance(float Distance) const;
 
+	FRotator GetRotationAtDistance(float Distance) const;
+
 	FVector FindLocationClosestTo(FVector Location) const;
 
 #if WITH_EDITOR
@@ -46,7 +48,7 @@ protected:
 	float RingDistance;
 
 	UPROPERTY(EditDefaultsOnly)
-	float RingFadePercentage;
+	float RingFadeDistance;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<ARing> RingClass;

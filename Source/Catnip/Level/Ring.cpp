@@ -14,7 +14,9 @@ ARing::ARing()
 {
 	this->RingRadius = 500.0f;
 	this->RingResolution = 12;
-	this->Opacity = 0.0f;
+
+	this->LastOpacity = 1.0f;
+	this->RequiredOpacity = 0.0f;
 
 	this->SceneComponent = UObject::CreateDefaultSubobject<USceneComponent>(TEXT("RingSceneComponent"));
 	Super::RootComponent = this->SceneComponent;
@@ -98,7 +100,7 @@ void ARing::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (this->MaterialInstanceDynamic == nullptr)
+	if (this->MaterialInstanceDynamic == nullptr || FMath::IsNearlyEqual(this->LastOpacity, this->RequiredOpacity))
 	{
 		return;
 	}
@@ -107,6 +109,7 @@ void ARing::Tick(float DeltaTime)
 	//float Percentage = 1.0f - FMath::Clamp(DistanceSquared / FMath::Square(this->RingFadeDistance), 0.0f, 1.0f);
 	//this->MaterialInstanceDynamic->SetScalarParameterValue(TEXT("OpacityPercentage"), Percentage);
 
-	this->MaterialInstanceDynamic->SetScalarParameterValue(TEXT("OpacityPercentage"), this->Opacity);
+	this->MaterialInstanceDynamic->SetScalarParameterValue(TEXT("OpacityPercentage"), this->RequiredOpacity);
+	this->LastOpacity = this->RequiredOpacity;
 }
 

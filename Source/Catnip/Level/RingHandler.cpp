@@ -16,7 +16,7 @@ ARingHandler::ARingHandler()
 	this->RingClass = ensure(ConstructorRingClass.Succeeded()) ? ConstructorRingClass.Class : ARing::StaticClass();
 
 	this->RingDistance = 300.0f;
-	this->RingFadePercentage = 0.225f;
+	this->RingFadeDistance = 2500.0f;
 	this->bDebugUpdateRings = false;
 	this->bDebugDeleteRings = false;
 
@@ -34,7 +34,23 @@ ARingHandler::ARingHandler()
 FVector ARingHandler::GetLocationAtDistance(float Distance) const
 {
 	check(this->SplineComponent != nullptr);
+	if (Distance < 0.0f)
+	{
+		FVector Location = this->SplineComponent->GetLocationAtSplinePoint(0, ESplineCoordinateSpace::World);
+		FVector Direction = this->SplineComponent->GetDirectionAtSplinePoint(0, ESplineCoordinateSpace::World);
+		return Location + Direction * Distance;
+	}
 	return this->SplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+}
+
+FRotator ARingHandler::GetRotationAtDistance(float Distance) const
+{
+	check(this->SplineComponent != nullptr);
+	if (Distance < 0.0f)
+	{
+		return this->SplineComponent->GetRotationAtSplinePoint(0, ESplineCoordinateSpace::World);
+	}
+	return this->SplineComponent->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
 }
 
 FVector ARingHandler::FindLocationClosestTo(FVector Location) const
@@ -105,12 +121,19 @@ void ARingHandler::DeleteRings()
 
 void ARingHandler::UpdatePawnLocation(FVector Location)
 {
-	//float InputKey = this->SplineComponent->FindInputKeyClosestToWorldLocation(Location);
-	//float DistanceA = this->SplineComponent->GetDistanceAlongSplineAtSplinePoint(int32(InputKey));
-	//float DistanceB = this->SplineComponent->GetDistanceAlongSplineAtSplinePoint(int32(InputKey) + 1);
-	//float DistanceAtLocation = DistanceA + (DistanceB - DistanceA) * (InputKey - int32(InputKey));
-	float DistanceAtLocation = this->GetDistanceAtInputKey(this->SplineComponent->FindInputKeyClosestToWorldLocation(Location));
-	float CurrentPercentage = DistanceAtLocation / this->SplineComponent->GetSplineLength();
+	float InputKey = this->SplineComponent->FindInputKeyClosestToWorldLocation(Location);
+	float DistanceAtLocation = this->GetDistanceAtInputKey(InputKey);
+	if (FMath::IsNearlyZero(DistanceAtLocation))
+	{
+		DistanceAtLocation = -(this->SplineComponent->GetLocationAtSplineInputKey(InputKey, ESplineCoordinateSpace::World) - Location).Size();
+	}
+	float SplineLength = this->SplineComponent->GetSplineLength();
+	check(SplineLength > 0);
+	float CurrentPercentage = DistanceAtLocation / SplineLength;
+
+	const float FadePercentage = this->RingFadeDistance / SplineLength;
+	const float AppearPercentageOffset = 250.0f / SplineLength;
+	const float DisappearPercentageOffset = 1000.0f / SplineLength;
 
 	for (int32 i = 0; i < this->Rings.Num(); ++i)
 	{
@@ -119,10 +142,18 @@ void ARingHandler::UpdatePawnLocation(FVector Location)
 			continue;
 		}
 		float Distance = this->RingDistance * i;
-		float Percentage = Distance / this->SplineComponent->GetSplineLength();
+		float Percentage = Distance / this->SplineComponent->GetSplineLength() - AppearPercentageOffset;
 
-		float Opacity = FMath::Clamp((Percentage - CurrentPercentage) / this->RingFadePercentage, 0.0f, 1.0f);
-		this->Rings[i]->UpdateRingOpacity(1.0f - Opacity);
+		float Opacity;
+		if (Percentage < CurrentPercentage - DisappearPercentageOffset)
+		{
+			Opacity = 0.0f;
+		}
+		else
+		{
+			Opacity = 1.0f - FMath::Clamp((Percentage - CurrentPercentage) / FadePercentage, 0.0f, 1.0f);
+		}
+		this->Rings[i]->UpdateRingOpacity(Opacity);
 	}
 }
 

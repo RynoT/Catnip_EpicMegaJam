@@ -4,11 +4,11 @@
 #include "CatCharacter.h"
 
 #include "Camera/CameraComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Components/InputComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
-#include "GameFramework/SpringArmComponent.h"
+#include "Components/InputComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 ACatCharacter::ACatCharacter()
 {
@@ -30,38 +30,29 @@ ACatCharacter::ACatCharacter()
 	Super::GetCharacterMovement()->JumpZVelocity = 600.f;
 	Super::GetCharacterMovement()->AirControl = 0.2f;
 
-	// Create a camera boom (pulls in towards the player if there is a collision).
-	this->CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	this->CameraBoom->SetupAttachment(RootComponent);
-	this->CameraBoom->TargetArmLength = 300.0f;
-	this->CameraBoom->bUsePawnControlRotation = true;
-
-	// Create a follow camera.
-	this->FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	this->FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-	this->FollowCamera->bUsePawnControlRotation = false;
+	// Create a Camera camera.
+	this->Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CatCamera"));
+	this->Camera->SetupAttachment(Super::RootComponent);
+	this->Camera->bUsePawnControlRotation = false;
 
 	// Disable physics.
 	Super::GetCapsuleComponent()->SetSimulatePhysics(false);
 }
 
-//////////////////////////////////////////////////////////////////////////
-// Input
-
 void ACatCharacter::SetupPlayerInputComponent(class UInputComponent *PlayerInputComponent)
 {
 	check(PlayerInputComponent);
 
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	//PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	//PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	PlayerInputComponent->BindAxis("MoveForward", this, &ACatCharacter::MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &ACatCharacter::MoveRight);
+	//PlayerInputComponent->BindAxis("MoveForward", this, &ACatCharacter::MoveForward);
+	//PlayerInputComponent->BindAxis("MoveRight", this, &ACatCharacter::MoveRight);
 
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("TurnRate", this, &ACatCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-	PlayerInputComponent->BindAxis("LookUpRate", this, &ACatCharacter::LookUpAtRate);
+	//PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	//PlayerInputComponent->BindAxis("TurnRate", this, &ACatCharacter::TurnAtRate);
+	//PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	//PlayerInputComponent->BindAxis("LookUpRate", this, &ACatCharacter::LookUpAtRate);
 }
 
 void ACatCharacter::TurnAtRate(float Rate)
