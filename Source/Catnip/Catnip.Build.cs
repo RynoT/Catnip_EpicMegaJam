@@ -9,7 +9,7 @@ public class Catnip : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
         PrecompileForTargets = PrecompileTargetsType.Any;
-        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay" });
+        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
 
         if (Target.Type == TargetRules.TargetType.Editor)
         {

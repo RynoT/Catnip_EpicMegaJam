@@ -14,8 +14,14 @@ ARing::ARing()
 {
 	this->RingResolution = 12;
 
+	this->RotateSpeedMin = -25.0f;
+	this->RotateSpeedMax = 25.0f;
+	this->RotateSpeedRerollZone = 5.0f;
+
 	this->LastOpacity = 1.0f;
 	this->RequiredOpacity = 0.0f;
+
+	this->bDebugDisableRotation = false;
 
 	this->SceneComponent = UObject::CreateDefaultSubobject<USceneComponent>(TEXT("RingSceneComponent"));
 	Super::RootComponent = this->SceneComponent;
@@ -37,7 +43,26 @@ void ARing::OnConstruction(const FTransform& Transform)
 #endif
 }
 
-void ARing::UpdatePoints(UStaticMesh* Mesh, float Radius)
+void ARing::BeginPlay()
+{
+	Super::BeginPlay();
+
+	do
+	{
+		this->RotateSpeed = FMath::RandRange(this->RotateSpeedMin, this->RotateSpeedMax);
+	} while (FMath::Abs(this->RotateSpeed) < this->RotateSpeedRerollZone);
+}
+
+void ARing::UpdateColor(FLinearColor Color)
+{
+	if (this->MaterialInstanceDynamic == nullptr)
+	{
+		return;
+	}
+	this->MaterialInstanceDynamic->SetVectorParameterValue(TEXT("Color"), Color);
+}
+
+void ARing::UpdatePoints(UStaticMesh *Mesh, float Radius)
 {
 	if (!ensure(this->SplineComponent != nullptr))
 	{
@@ -90,15 +115,15 @@ void ARing::UpdatePoints(UStaticMesh* Mesh, float Radius)
 	this->SplineComponent->UpdateSpline();
 }
 
-void ARing::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
 void ARing::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// Rotate the ring.
+	if (!WITH_EDITOR || !this->bDebugDisableRotation)
+	{
+		Super::AddActorLocalRotation(FRotator(0.0f, 0.0f, this->RotateSpeed * DeltaTime));
+	}
 	if (this->MaterialInstanceDynamic == nullptr || FMath::IsNearlyEqual(this->LastOpacity, this->RequiredOpacity))
 	{
 		return;

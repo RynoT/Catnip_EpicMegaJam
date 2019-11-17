@@ -84,6 +84,7 @@ void ARingHandler::UpdateRings()
 	}
 
 	float Length = this->SplineComponent->GetSplineLength();
+	int32 ccc = 0;
 	for (float i = 0.0f; i < Length; i += this->RingDistance)
 	{
 		FVector Location = this->SplineComponent->GetLocationAtDistanceAlongSpline(i, ESplineCoordinateSpace::World);
@@ -95,6 +96,11 @@ void ARingHandler::UpdateRings()
 		ARing *Ring = Super::GetWorld()->SpawnActor<ARing>(this->RingClass, Location, Rotation, Params);
 		ensure(Ring != nullptr);
 		Ring->UpdatePoints(this->RingStaticMeshes[FMath::RandRange(0, this->RingStaticMeshes.Num() - 1)], this->RingRadius);
+		if ((++ccc) % 4 == 0)
+		{
+			Ring->UpdateColor(FColor::Cyan);
+		}
+
 		this->Rings.Add(Ring);
 
 		//UE_LOG(LogTemp, Log, TEXT("Spawned: %s"), *Location.ToString());

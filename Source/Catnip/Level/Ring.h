@@ -23,6 +23,8 @@ protected:
 public:	
 	virtual void Tick(float DeltaTime) override;
 
+	void UpdateColor(FLinearColor Color);
+
 	void UpdatePoints(UStaticMesh *Mesh, float Radius);
 
 	void UpdateRingOpacity(float RingOpacity);
@@ -30,6 +32,15 @@ public:
 protected:
 	UPROPERTY(EditAnywhere)
 	int32 RingResolution;
+
+	UPROPERTY(EditAnywhere)
+	float RotateSpeedMin;
+
+	UPROPERTY(EditAnywhere)
+	float RotateSpeedMax;
+
+	UPROPERTY(EditAnywhere)
+	float RotateSpeedRerollZone;
 
 	UPROPERTY()
 	UStaticMeshComponent *StaticMeshComponent;
@@ -46,9 +57,14 @@ protected:
 	UPROPERTY()
 	UMaterialInstanceDynamic *MaterialInstanceDynamic;
 
+	UPROPERTY(EditDefaultsOnly)
+	bool bDebugDisableRotation;
+
 private:
 	float LastOpacity;
 	float RequiredOpacity;
+
+	float RotateSpeed;
 };
 
 /// INLINE ///
