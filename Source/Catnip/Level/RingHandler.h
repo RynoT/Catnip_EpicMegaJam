@@ -49,13 +49,13 @@ private:
 	float GetDistanceAtInputKey(float InputKey) const;
 
 protected:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RingRadius;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RingDistance;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RingFadeDistance;
 
 	UPROPERTY(EditDefaultsOnly)

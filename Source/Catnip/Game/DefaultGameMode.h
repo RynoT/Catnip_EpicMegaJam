@@ -31,7 +31,7 @@ public:
 	}
 
 protected:
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MovementSpeed;
 
 	UPROPERTY()
