@@ -15,6 +15,7 @@ ARingHandler::ARingHandler()
 	static ConstructorHelpers::FClassFinder<ARing> ConstructorRingClass = ConstructorHelpers::FClassFinder<ARing>(CONSTRUCTOR_RING_CLASS);
 	this->RingClass = ensure(ConstructorRingClass.Succeeded()) ? ConstructorRingClass.Class : ARing::StaticClass();
 
+	this->RingRadius = 500.0f;
 	this->RingDistance = 300.0f;
 	this->RingFadeDistance = 2500.0f;
 	this->bDebugUpdateRings = false;
@@ -62,8 +63,6 @@ FVector ARingHandler::FindLocationClosestTo(FVector Location) const
 void ARingHandler::BeginPlay()
 {
 	Super::BeginPlay();
-
-	this->UpdateRings();
 }
 
 void ARingHandler::Tick(float DeltaTime)
@@ -95,7 +94,7 @@ void ARingHandler::UpdateRings()
 
 		ARing *Ring = Super::GetWorld()->SpawnActor<ARing>(this->RingClass, Location, Rotation, Params);
 		ensure(Ring != nullptr);
-		Ring->UpdatePoints(this->RingStaticMeshes[FMath::RandRange(0, this->RingStaticMeshes.Num() - 1)]);
+		Ring->UpdatePoints(this->RingStaticMeshes[FMath::RandRange(0, this->RingStaticMeshes.Num() - 1)], this->RingRadius);
 		this->Rings.Add(Ring);
 
 		//UE_LOG(LogTemp, Log, TEXT("Spawned: %s"), *Location.ToString());

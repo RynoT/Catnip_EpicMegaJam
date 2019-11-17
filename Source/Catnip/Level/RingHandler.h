@@ -40,10 +40,18 @@ public:
 	void PostEditChangeProperty(struct FPropertyChangedEvent& event) override;
 #endif
 
+	FORCEINLINE float GetRingRadius() const
+	{
+		return this->RingRadius;
+	}
+
 private:
 	float GetDistanceAtInputKey(float InputKey) const;
 
 protected:
+	UPROPERTY(EditAnywhere)
+	float RingRadius;
+
 	UPROPERTY(EditDefaultsOnly)
 	float RingDistance;
 

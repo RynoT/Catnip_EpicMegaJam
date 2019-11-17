@@ -17,11 +17,18 @@ class CATNIP_API ACatCharacter : public ACharacter
 public:
 	ACatCharacter();
 
+	void MoveUp(float Value);
 	void MoveRight(float Value);
-	void MoveForward(float Value);
 
-	void TurnAtRate(float Rate);
-	void LookUpAtRate(float Rate);
+	FORCEINLINE float &GetDistanceRef()
+	{
+		return this->Distance;
+	}
+
+	FORCEINLINE FVector &GetDirectionRef()
+	{
+		return this->Direction;
+	}
 
 	FORCEINLINE UCameraComponent *GetCamera()
 	{
@@ -29,15 +36,13 @@ public:
 	}
 
 protected:
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void SetupPlayerInputComponent(UInputComponent *PlayerInputComponent) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	float BaseTurnRate;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	float BaseLookUpRate;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	UCameraComponent *Camera;
+
+private:
+	float Distance;
+	FVector Direction;
 };

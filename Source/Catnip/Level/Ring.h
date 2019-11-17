@@ -23,14 +23,11 @@ protected:
 public:	
 	virtual void Tick(float DeltaTime) override;
 
-	void UpdatePoints(UStaticMesh *Mesh);
+	void UpdatePoints(UStaticMesh *Mesh, float Radius);
 
 	void UpdateRingOpacity(float RingOpacity);
 
 protected:
-	UPROPERTY(EditAnywhere)
-	float RingRadius;
-
 	UPROPERTY(EditAnywhere)
 	int32 RingResolution;
 

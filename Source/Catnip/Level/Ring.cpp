@@ -12,7 +12,6 @@
 
 ARing::ARing()
 {
-	this->RingRadius = 500.0f;
 	this->RingResolution = 12;
 
 	this->LastOpacity = 1.0f;
@@ -34,11 +33,11 @@ void ARing::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 
 #if WITH_EDITOR
-	this->UpdatePoints(nullptr);
+	this->UpdatePoints(nullptr, 500.0f);
 #endif
 }
 
-void ARing::UpdatePoints(UStaticMesh* Mesh)
+void ARing::UpdatePoints(UStaticMesh* Mesh, float Radius)
 {
 	if (!ensure(this->SplineComponent != nullptr))
 	{
@@ -64,7 +63,7 @@ void ARing::UpdatePoints(UStaticMesh* Mesh)
 		float Sin, Cos;
 		FMath::SinCos(&Sin, &Cos, Increment * i + AngleOffset);
 
-		FVector Point = Rotation.RotateVector(FVector(0.0f, Sin, Cos)) * this->RingRadius + Location;
+		FVector Point = Rotation.RotateVector(FVector(0.0f, Sin, Cos)) * Radius + Location;
 		this->SplineComponent->AddSplinePoint(Point, ESplineCoordinateSpace::World, false);
 
 		if (Mesh == nullptr)

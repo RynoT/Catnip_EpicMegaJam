@@ -12,84 +12,57 @@
 
 ACatCharacter::ACatCharacter()
 {
-	// Set size for collision capsule
-	Super::GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-
-	// Set our turn rates for input.
-	this->BaseTurnRate = 45.0f;
-	this->BaseLookUpRate = 45.0f;
-
-	// Don't rotate when the controller rotates. Let that just affect the camera.
-	Super::bUseControllerRotationPitch = false;
-	Super::bUseControllerRotationYaw = false;
-	Super::bUseControllerRotationRoll = false;
-
-	// Configure character movement.
-	Super::GetCharacterMovement()->bOrientRotationToMovement = true;
-	Super::GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
-	Super::GetCharacterMovement()->JumpZVelocity = 600.f;
-	Super::GetCharacterMovement()->AirControl = 0.2f;
+	this->Distance = 0.0f;
+	this->Direction = FVector::ZeroVector;
 
 	// Create a Camera camera.
 	this->Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CatCamera"));
-	this->Camera->SetupAttachment(Super::RootComponent);
 	this->Camera->bUsePawnControlRotation = false;
+	this->Camera->SetupAttachment(Super::RootComponent);
+
+	// Disable use controllor rotation.
+	Super::bUseControllerRotationYaw = false;
+	Super::bUseControllerRotationRoll = false;
+	Super::bUseControllerRotationPitch = false;
 
 	// Disable physics.
 	Super::GetCapsuleComponent()->SetSimulatePhysics(false);
+
+	// Set size for collision capsule.
+	Super::GetCapsuleComponent()->InitCapsuleSize(42.0f, 96.0f);
 }
 
-void ACatCharacter::SetupPlayerInputComponent(class UInputComponent *PlayerInputComponent)
+void ACatCharacter::SetupPlayerInputComponent(UInputComponent *PlayerInputComponent)
 {
 	check(PlayerInputComponent);
 
-	//PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	//PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
-
-	//PlayerInputComponent->BindAxis("MoveForward", this, &ACatCharacter::MoveForward);
-	//PlayerInputComponent->BindAxis("MoveRight", this, &ACatCharacter::MoveRight);
-
-	//PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	//PlayerInputComponent->BindAxis("TurnRate", this, &ACatCharacter::TurnAtRate);
-	//PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-	//PlayerInputComponent->BindAxis("LookUpRate", this, &ACatCharacter::LookUpAtRate);
+	PlayerInputComponent->BindAxis("MoveUp", this, &ACatCharacter::MoveUp);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ACatCharacter::MoveRight);
 }
 
-void ACatCharacter::TurnAtRate(float Rate)
+void ACatCharacter::MoveUp(float Value)
 {
-	Super::AddControllerYawInput(Rate * this->BaseTurnRate * Super::GetWorld()->GetDeltaSeconds());
-}
-
-void ACatCharacter::LookUpAtRate(float Rate)
-{
-	Super::AddControllerPitchInput(Rate * this->BaseLookUpRate * Super::GetWorld()->GetDeltaSeconds());
-}
-
-void ACatCharacter::MoveForward(float Value)
-{
-	if (Super::Controller != nullptr && !FMath::IsNearlyZero(Value))
+	if (FMath::IsNearlyZero(Value))
 	{
-		// Find out which way is forward.
-		const FRotator Rotation = Super::Controller->GetControlRotation();
-		const FRotator YawRotation(0.0f, Rotation.Yaw, 0.0f);
-
-		// Get forward vector.
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		Super::AddMovementInput(Direction, Value);
+		return;
 	}
+	FVector CurrentLocation = this->Direction * this->Distance;
+	CurrentLocation += FVector::UpVector * Value;
+
+	this->Direction = CurrentLocation.GetSafeNormal();
+	this->Distance = CurrentLocation.Size();
 }
 
 void ACatCharacter::MoveRight(float Value)
 {
-	if (Super::Controller != nullptr && !FMath::IsNearlyZero(Value))
+	if (FMath::IsNearlyZero(Value))
 	{
-		// Find out which way is right.
-		const FRotator Rotation = Super::Controller->GetControlRotation();
-		const FRotator YawRotation(0.0f, Rotation.Yaw, 0.0f);
-
-		// Get right vector.
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-		Super::AddMovementInput(Direction, Value);
+		return;
 	}
+	FVector CurrentLocation = this->Direction * this->Distance;
+	CurrentLocation += FVector::RightVector * Value;
+
+	this->Direction = CurrentLocation.GetSafeNormal();
+	this->Distance = CurrentLocation.Size();
 }
 

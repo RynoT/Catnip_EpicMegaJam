@@ -26,7 +26,7 @@ ADefaultGameMode::ADefaultGameMode()
 	}
 
 	this->MovementSpeed = 1500.0f;
-	this->CurrentDistance = -6000.0f;
+	this->CurrentDistance = -5250.0f;
 
 	Super::PrimaryActorTick.bCanEverTick = true;
 }
@@ -53,6 +53,7 @@ void ADefaultGameMode::BeginPlay()
 	if (ensure(TempArray.Num() == 1))
 	{
 		this->RingHandler = Cast<ARingHandler>(TempArray[0]);
+		this->RingHandler->UpdateRings();
 	}
 }
 
@@ -90,9 +91,18 @@ void ADefaultGameMode::Tick(float DeltaTime)
 	if (Character != nullptr)
 	{
 		FRotator RotationUpdate = this->RingHandler->GetRotationAtDistance(this->CurrentDistance);
+		Character->GetCamera()->SetWorldRotation(RotationUpdate);
+
+		// Update character location and rotation.
+		float &Distance = Character->GetDistanceRef();
+		FVector &Direction = Character->GetDirectionRef();
+
+		constexpr float RingPadding = 150.0f;
+		Distance = FMath::Min(Distance, this->RingHandler->GetRingRadius() - RingPadding);
+
+		LocationUpdate += Character->GetActorRotation().RotateVector(Direction) * Distance;
 		Character->SetActorLocationAndRotation(LocationUpdate, RotationUpdate);
 
-		Character->GetCamera()->SetWorldRotation(RotationUpdate);
 	}
 	this->RingHandler->UpdatePawnLocation(LocationUpdate);
 }
