@@ -34,9 +34,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MovementSpeed;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float InterpCameraSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float InterpCharacterSpeed;
+
 	UPROPERTY()
 	ARingHandler *RingHandler;
 
 private:
 	float CurrentDistance;
+
+	FVector CameraOffset;
+	FVector PlayerOffset;
 };

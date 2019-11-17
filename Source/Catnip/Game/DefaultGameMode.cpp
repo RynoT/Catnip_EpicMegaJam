@@ -27,6 +27,11 @@ ADefaultGameMode::ADefaultGameMode()
 
 	this->MovementSpeed = 1500.0f;
 	this->CurrentDistance = -5250.0f;
+	this->InterpCameraSpeed = 5.0f;
+	this->InterpCharacterSpeed = 10.0f;
+
+	this->CameraOffset = FVector::ZeroVector;
+	this->PlayerOffset = FVector::ZeroVector;
 
 	Super::PrimaryActorTick.bCanEverTick = true;
 }
@@ -91,7 +96,16 @@ void ADefaultGameMode::Tick(float DeltaTime)
 	if (Character != nullptr)
 	{
 		FRotator RotationUpdate = this->RingHandler->GetRotationAtDistance(this->CurrentDistance);
-		Character->GetCamera()->SetWorldRotation(RotationUpdate);
+
+		// Update camera location and rotation.
+		UCameraComponent *Camera = Character->GetCamera();
+		//FVector CameraLocationUpdate = Character->GetActorLocation() + RotationUpdate.RotateVector(Character->GetCameraOffset());
+
+		//FVector TargetCameraLocation = LocationUpdate + RotationUpdate.RotateVector(Character->GetCameraOffset());
+		//FVector CurrentCameraLocation = this->CameraOffset;
+		//FVector NextCameraLocation = FMath::VInterpTo(CurrentCameraLocation, TargetCameraLocation, DeltaTime, this->InterpCameraSpeed);
+		//Camera->SetWorldLocationAndRotation(TargetCameraLocation, RotationUpdate);
+		//this->CameraOffset = NextCameraLocation;
 
 		// Update character location and rotation.
 		float &Distance = Character->GetDistanceRef();
@@ -100,9 +114,12 @@ void ADefaultGameMode::Tick(float DeltaTime)
 		constexpr float RingPadding = 150.0f;
 		Distance = FMath::Min(Distance, this->RingHandler->GetRingRadius() - RingPadding);
 
-		LocationUpdate += Character->GetActorRotation().RotateVector(Direction) * Distance;
-		Character->SetActorLocationAndRotation(LocationUpdate, RotationUpdate);
+		FVector TargetOffsetLocation = Direction * Distance;
+		this->PlayerOffset = FMath::VInterpTo(this->PlayerOffset, TargetOffsetLocation, DeltaTime, this->InterpCharacterSpeed);
+		//this->PlayerOffset = TargetOffsetLocation;
 
+		LocationUpdate += Character->GetActorRotation().RotateVector(this->PlayerOffset);
+		Character->SetActorLocationAndRotation(LocationUpdate, RotationUpdate);
 	}
 	this->RingHandler->UpdatePawnLocation(LocationUpdate);
 }

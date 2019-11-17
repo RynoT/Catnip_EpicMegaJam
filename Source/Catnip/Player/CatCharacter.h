@@ -17,6 +17,10 @@ class CATNIP_API ACatCharacter : public ACharacter
 public:
 	ACatCharacter();
 
+protected:
+	virtual void BeginPlay() override;
+
+public:
 	void MoveUp(float Value);
 	void MoveRight(float Value);
 
@@ -35,6 +39,11 @@ public:
 		return this->Camera;
 	}
 
+	FORCEINLINE const FVector &GetCameraOffset() const
+	{
+		return this->CameraOffset;
+	}
+
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent *PlayerInputComponent) override;
 
@@ -42,7 +51,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	UCameraComponent *Camera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	USpringArmComponent *SpringArm;
+
 private:
 	float Distance;
 	FVector Direction;
+
+	FVector CameraOffset;
 };

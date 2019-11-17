@@ -8,6 +8,7 @@
 #include "Components/InputComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 ACatCharacter::ACatCharacter()
@@ -15,10 +16,15 @@ ACatCharacter::ACatCharacter()
 	this->Distance = 0.0f;
 	this->Direction = FVector::ZeroVector;
 
-	// Create a Camera camera.
-	this->Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CatCamera"));
+	// Create spring arm.
+	this->SpringArm = UObject::CreateDefaultSubobject<USpringArmComponent>(TEXT("CatSpringArm"));
+	this->SpringArm->TargetArmLength = 600.0f;
+	this->SpringArm->SetupAttachment(Super::RootComponent, USpringArmComponent::SocketName);
+
+	// Create camera.
+	this->Camera = UObject::CreateDefaultSubobject<UCameraComponent>(TEXT("CatCamera"));
 	this->Camera->bUsePawnControlRotation = false;
-	this->Camera->SetupAttachment(Super::RootComponent);
+	this->Camera->SetupAttachment(this->SpringArm);
 
 	// Disable use controllor rotation.
 	Super::bUseControllerRotationYaw = false;
@@ -30,6 +36,14 @@ ACatCharacter::ACatCharacter()
 
 	// Set size for collision capsule.
 	Super::GetCapsuleComponent()->InitCapsuleSize(42.0f, 96.0f);
+}
+
+void ACatCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	check(this->Camera != nullptr);
+	this->CameraOffset = this->Camera->GetRelativeTransform().GetLocation();
 }
 
 void ACatCharacter::SetupPlayerInputComponent(UInputComponent *PlayerInputComponent)
