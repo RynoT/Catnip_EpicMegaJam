@@ -30,7 +30,8 @@ public:
 
 	void UpdatePawnLocation(FVector Location);
 
-	FVector RestrictPosition(const FVector &Position, float RadiusShrink = 0.0f) const;
+	//FVector RestrictPosition(const FVector &Position, float RadiusShrink = 0.0f) const;
+	FVector RestrictPositionOffset(const FVector &SplinePosition, const FVector &PositionOffset, float RadiusShrink = 0.0f) const;
 
 	FVector GetLocationAtDistance(float Distance) const;
 

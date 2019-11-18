@@ -97,13 +97,17 @@ void ADefaultGameMode::Tick(float DeltaTime)
 		FRotator CharacterRotation = Character->GetActorRotation();
 		FRotator RotationUpdate = this->RingHandler->GetRotationAtDistance(this->CurrentDistance);
 
-		float RadiusShrink = Character->GetSimpleCollisionRadius();
+		float RadiusShrink = Character->GetSimpleCollisionRadius() * 2.0f;
 
 		// Restrict PlayerOffset.
 		FVector &PlayerOffset = Character->GetPlayerOffsetRef();
 		{
-			PlayerOffset = this->RingHandler->RestrictPosition(LocationUpdate + RotationUpdate.RotateVector(PlayerOffset), RadiusShrink);
-			PlayerOffset = RotationUpdate.UnrotateVector(PlayerOffset - LocationUpdate);
+			//PlayerOffset = this->RingHandler->RestrictPosition(LocationUpdate + RotationUpdate.RotateVector(PlayerOffset), RadiusShrink);
+			//PlayerOffset = RotationUpdate.UnrotateVector(PlayerOffset - LocationUpdate);
+
+			//FVector Restricted = this->RingHandler->RestrictPosition(LocationUpdate + RotationUpdate.RotateVector(PlayerOffset));
+
+			PlayerOffset = this->RingHandler->RestrictPositionOffset(LocationUpdate, PlayerOffset, RadiusShrink);
 		}
 
 		// Interpolate PlayerOffset.
@@ -116,41 +120,8 @@ void ADefaultGameMode::Tick(float DeltaTime)
 		}
 
 		// Update character location and rotation.
+		//UE_LOG(LogTemp, Log, TEXT("%s"), *PlayerOffset.ToString());
 		Character->SetActorLocationAndRotation(LocationUpdate + RotationUpdate.RotateVector(this->PlayerOffsetCache), RotationUpdate);
-
-
-		//FVector NextLocation = LocationUpdate + RotationUpdate.RotateVector(PlayerOffset);
-		//NextLocation = this->RingHandler->RestrictPosition(NextLocation);
-
-		//Character->SetActorLocationAndRotation(NextLocation, RotationUpdate);
-
-		//PlayerOffset = PlayerOffset.GetSafeNormal() * (NextLocation - LocationUpdate).Size();
-
-		//// Update camera location and rotation.
-		//UCameraComponent *Camera = Character->GetCamera();
-		//FVector CameraLocationUpdate = Character->GetActorLocation() + RotationUpdate.RotateVector(Character->GetCameraOffset());
-
-		//FVector TargetCameraLocation = LocationUpdate + RotationUpdate.RotateVector(Character->GetCameraOffset());
-		//FVector CurrentCameraLocation = this->CameraOffset;
-		//FVector NextCameraLocation = FMath::VInterpTo(CurrentCameraLocation, TargetCameraLocation, DeltaTime, this->InterpCameraSpeed);
-		//Camera->SetWorldLocationAndRotation(TargetCameraLocation, RotationUpdate);
-		//this->CameraOffset = NextCameraLocation;
-
-		//// Update character location and rotation.
-		//float &Distance = Character->GetDistanceRef();
-		//FVector &Direction = Character->GetDirectionRef();
-
-		//constexpr float RingPadding = 150.0f;
-		//this->RingHandler
-		//Distance = FMath::Min(Distance, this->RingHandler->GetRingRadius());// -RingPadding);
-
-		//FVector TargetOffsetLocation = Direction * Distance;
-		//this->PlayerOffset = FMath::VInterpTo(this->PlayerOffset, TargetOffsetLocation, DeltaTime, this->InterpCharacterSpeed);
-		////this->PlayerOffset = FMath::VInterpConstantTo(this->PlayerOffset, TargetOffsetLocation, DeltaTime, this->InterpCharacterSpeed);
-		////this->PlayerOffset = TargetOffsetLocation;
-
-		//LocationUpdate += Character->GetActorRotation().RotateVector(this->PlayerOffset);
-		//Character->SetActorLocationAndRotation(LocationUpdate, RotationUpdate);
 	}
 	this->RingHandler->UpdatePawnLocation(LocationUpdate);
 }

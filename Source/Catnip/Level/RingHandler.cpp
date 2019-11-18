@@ -5,6 +5,7 @@
 
 #include "Ring.h"
 #include "Engine/World.h"
+#include "DrawDebugHelpers.h"
 #include "ConstructorHelpers.h"
 #include "Components/SplineComponent.h"
 
@@ -16,8 +17,8 @@ ARingHandler::ARingHandler()
 	this->RingClass = ensure(ConstructorRingClass.Succeeded()) ? ConstructorRingClass.Class : ARing::StaticClass();
 
 	this->RingRadius = 500.0f;
-	this->RingDistance = 300.0f;
-	this->RingFadeDistance = 2500.0f;
+	this->RingDistance = 500.0f;
+	this->RingFadeDistance = 8000.0f;
 	this->bDebugUpdateRings = false;
 	this->bDebugDeleteRings = false;
 
@@ -70,15 +71,27 @@ void ARingHandler::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-FVector ARingHandler::RestrictPosition(const FVector &Position, float RadiusShrink) const
+//FVector ARingHandler::RestrictPosition(const FVector &Position, float RadiusShrink) const
+//{
+//	FVector Closest = this->FindLocationClosestTo(Position);
+//	DrawDebugLine(Super::GetWorld(), Position, Closest, FColor::Purple, true);
+//	FVector Difference = Position - Closest;
+//	if (Difference.SizeSquared() <= FMath::Square(this->RingRadius - RadiusShrink))
+//	{
+//		DrawDebugPoint(Super::GetWorld(), Position, 10, FColor::Orange, true);
+//		return Position;
+//	}
+//	DrawDebugPoint(Super::GetWorld(), Closest + Difference.GetSafeNormal() * (this->RingRadius - RadiusShrink), 10, FColor::Red, true);
+//	return Closest + Difference.GetSafeNormal() * (this->RingRadius - RadiusShrink);
+//}
+
+FVector ARingHandler::RestrictPositionOffset(const FVector &SplinePosition, const FVector &PositionOffset, float RadiusShrink) const
 {
-	FVector Closest = this->FindLocationClosestTo(Position);
-	FVector Difference = Position - Closest;
-	if (Difference.SizeSquared() <= FMath::Square(this->RingRadius - RadiusShrink))
+	if (PositionOffset.SizeSquared() <= FMath::Square(this->RingRadius - RadiusShrink))
 	{
-		return Position;
+		return PositionOffset;
 	}
-	return Closest + Difference.GetSafeNormal() * (this->RingRadius - RadiusShrink);
+	return PositionOffset.GetSafeNormal() * (this->RingRadius - RadiusShrink);
 }
 
 void ARingHandler::UpdateRings()
