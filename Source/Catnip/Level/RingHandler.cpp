@@ -70,6 +70,17 @@ void ARingHandler::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+FVector ARingHandler::RestrictPosition(const FVector &Position, float RadiusShrink) const
+{
+	FVector Closest = this->FindLocationClosestTo(Position);
+	FVector Difference = Position - Closest;
+	if (Difference.SizeSquared() <= FMath::Square(this->RingRadius - RadiusShrink))
+	{
+		return Position;
+	}
+	return Closest + Difference.GetSafeNormal() * (this->RingRadius - RadiusShrink);
+}
+
 void ARingHandler::UpdateRings()
 {
 	this->DeleteRings();
@@ -84,7 +95,7 @@ void ARingHandler::UpdateRings()
 	}
 
 	float Length = this->SplineComponent->GetSplineLength();
-	int32 ccc = 0;
+	//int32 ccc = 0;
 	for (float i = 0.0f; i < Length; i += this->RingDistance)
 	{
 		FVector Location = this->SplineComponent->GetLocationAtDistanceAlongSpline(i, ESplineCoordinateSpace::World);
@@ -96,10 +107,10 @@ void ARingHandler::UpdateRings()
 		ARing *Ring = Super::GetWorld()->SpawnActor<ARing>(this->RingClass, Location, Rotation, Params);
 		ensure(Ring != nullptr);
 		Ring->UpdatePoints(this->RingStaticMeshes[FMath::RandRange(0, this->RingStaticMeshes.Num() - 1)], this->RingRadius);
-		if ((++ccc) % 4 == 0)
-		{
-			Ring->UpdateColor(FColor::Cyan);
-		}
+		//if ((++ccc) % 4 == 0)
+		//{
+		//	//Ring->UpdateColor(FColor::Cyan);
+		//}
 
 		this->Rings.Add(Ring);
 

@@ -64,6 +64,7 @@ private:
 	float LastOpacity;
 	float RequiredOpacity;
 
+	bool bVisible;
 	float RotateSpeed;
 };
 

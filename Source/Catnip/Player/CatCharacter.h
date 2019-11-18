@@ -24,14 +24,9 @@ public:
 	void MoveUp(float Value);
 	void MoveRight(float Value);
 
-	FORCEINLINE float &GetDistanceRef()
+	FORCEINLINE FVector &GetPlayerOffsetRef()
 	{
-		return this->Distance;
-	}
-
-	FORCEINLINE FVector &GetDirectionRef()
-	{
-		return this->Direction;
+		return this->PlayerOffset;
 	}
 
 	FORCEINLINE UCameraComponent *GetCamera()
@@ -55,8 +50,6 @@ protected:
 	USpringArmComponent *SpringArm;
 
 private:
-	float Distance;
-	FVector Direction;
-
 	FVector CameraOffset;
+	FVector PlayerOffset;
 };

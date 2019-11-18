@@ -12,6 +12,7 @@
 
 ARing::ARing()
 {
+	this->bVisible = true;
 	this->RingResolution = 12;
 
 	this->RotateSpeedMin = -25.0f;
@@ -135,5 +136,14 @@ void ARing::Tick(float DeltaTime)
 
 	this->MaterialInstanceDynamic->SetScalarParameterValue(TEXT("OpacityPercentage"), this->RequiredOpacity);
 	this->LastOpacity = this->RequiredOpacity;
+
+	if (this->bVisible == FMath::IsNearlyZero(this->LastOpacity))
+	{
+		this->bVisible = !this->bVisible;
+		for (USceneComponent *Component : this->SplineComponent->GetAttachChildren())
+		{
+			Component->SetVisibility(this->bVisible);
+		}
+	}
 }
 

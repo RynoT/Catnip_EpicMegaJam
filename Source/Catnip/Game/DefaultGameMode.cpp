@@ -25,13 +25,12 @@ ADefaultGameMode::ADefaultGameMode()
 		Super::DefaultPawnClass = PawnClass.Class;
 	}
 
-	this->MovementSpeed = 1500.0f;
+	this->MovementSpeed = 1600.0f;
 	this->CurrentDistance = -5250.0f;
 	this->InterpCameraSpeed = 5.0f;
 	this->InterpCharacterSpeed = 10.0f;
 
-	this->CameraOffset = FVector::ZeroVector;
-	this->PlayerOffset = FVector::ZeroVector;
+	this->PlayerOffsetCache = FVector::ZeroVector;
 
 	Super::PrimaryActorTick.bCanEverTick = true;
 }
@@ -95,10 +94,40 @@ void ADefaultGameMode::Tick(float DeltaTime)
 	ACatCharacter *Character = Cast<ACatCharacter>(Controller->GetPawn());
 	if (Character != nullptr)
 	{
+		FRotator CharacterRotation = Character->GetActorRotation();
 		FRotator RotationUpdate = this->RingHandler->GetRotationAtDistance(this->CurrentDistance);
 
-		// Update camera location and rotation.
-		UCameraComponent *Camera = Character->GetCamera();
+		float RadiusShrink = Character->GetSimpleCollisionRadius();
+
+		// Restrict PlayerOffset.
+		FVector &PlayerOffset = Character->GetPlayerOffsetRef();
+		{
+			PlayerOffset = this->RingHandler->RestrictPosition(LocationUpdate + RotationUpdate.RotateVector(PlayerOffset), RadiusShrink);
+			PlayerOffset = RotationUpdate.UnrotateVector(PlayerOffset - LocationUpdate);
+		}
+
+		// Interpolate PlayerOffset.
+		{
+			if (this->PlayerOffsetCache.IsNearlyZero())
+			{
+				this->PlayerOffsetCache = PlayerOffset;
+			}
+			this->PlayerOffsetCache = FMath::VInterpTo(this->PlayerOffsetCache, PlayerOffset, DeltaTime, this->InterpCharacterSpeed);
+		}
+
+		// Update character location and rotation.
+		Character->SetActorLocationAndRotation(LocationUpdate + RotationUpdate.RotateVector(this->PlayerOffsetCache), RotationUpdate);
+
+
+		//FVector NextLocation = LocationUpdate + RotationUpdate.RotateVector(PlayerOffset);
+		//NextLocation = this->RingHandler->RestrictPosition(NextLocation);
+
+		//Character->SetActorLocationAndRotation(NextLocation, RotationUpdate);
+
+		//PlayerOffset = PlayerOffset.GetSafeNormal() * (NextLocation - LocationUpdate).Size();
+
+		//// Update camera location and rotation.
+		//UCameraComponent *Camera = Character->GetCamera();
 		//FVector CameraLocationUpdate = Character->GetActorLocation() + RotationUpdate.RotateVector(Character->GetCameraOffset());
 
 		//FVector TargetCameraLocation = LocationUpdate + RotationUpdate.RotateVector(Character->GetCameraOffset());
@@ -107,19 +136,21 @@ void ADefaultGameMode::Tick(float DeltaTime)
 		//Camera->SetWorldLocationAndRotation(TargetCameraLocation, RotationUpdate);
 		//this->CameraOffset = NextCameraLocation;
 
-		// Update character location and rotation.
-		float &Distance = Character->GetDistanceRef();
-		FVector &Direction = Character->GetDirectionRef();
+		//// Update character location and rotation.
+		//float &Distance = Character->GetDistanceRef();
+		//FVector &Direction = Character->GetDirectionRef();
 
-		constexpr float RingPadding = 150.0f;
-		Distance = FMath::Min(Distance, this->RingHandler->GetRingRadius() - RingPadding);
+		//constexpr float RingPadding = 150.0f;
+		//this->RingHandler
+		//Distance = FMath::Min(Distance, this->RingHandler->GetRingRadius());// -RingPadding);
 
-		FVector TargetOffsetLocation = Direction * Distance;
-		this->PlayerOffset = FMath::VInterpTo(this->PlayerOffset, TargetOffsetLocation, DeltaTime, this->InterpCharacterSpeed);
-		//this->PlayerOffset = TargetOffsetLocation;
+		//FVector TargetOffsetLocation = Direction * Distance;
+		//this->PlayerOffset = FMath::VInterpTo(this->PlayerOffset, TargetOffsetLocation, DeltaTime, this->InterpCharacterSpeed);
+		////this->PlayerOffset = FMath::VInterpConstantTo(this->PlayerOffset, TargetOffsetLocation, DeltaTime, this->InterpCharacterSpeed);
+		////this->PlayerOffset = TargetOffsetLocation;
 
-		LocationUpdate += Character->GetActorRotation().RotateVector(this->PlayerOffset);
-		Character->SetActorLocationAndRotation(LocationUpdate, RotationUpdate);
+		//LocationUpdate += Character->GetActorRotation().RotateVector(this->PlayerOffset);
+		//Character->SetActorLocationAndRotation(LocationUpdate, RotationUpdate);
 	}
 	this->RingHandler->UpdatePawnLocation(LocationUpdate);
 }

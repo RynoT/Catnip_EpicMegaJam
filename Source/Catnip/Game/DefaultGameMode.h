@@ -46,6 +46,5 @@ protected:
 private:
 	float CurrentDistance;
 
-	FVector CameraOffset;
-	FVector PlayerOffset;
+	FVector PlayerOffsetCache;
 };

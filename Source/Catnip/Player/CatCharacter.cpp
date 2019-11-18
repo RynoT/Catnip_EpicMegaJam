@@ -13,8 +13,8 @@
 
 ACatCharacter::ACatCharacter()
 {
-	this->Distance = 0.0f;
-	this->Direction = FVector::ZeroVector;
+	this->PlayerOffset = FVector::ZeroVector;
+	this->CameraOffset = FVector::ZeroVector; // Set in BeginPlay.
 
 	// Create spring arm.
 	this->SpringArm = UObject::CreateDefaultSubobject<USpringArmComponent>(TEXT("CatSpringArm"));
@@ -60,11 +60,7 @@ void ACatCharacter::MoveUp(float Value)
 	{
 		return;
 	}
-	FVector CurrentLocation = this->Direction * this->Distance;
-	CurrentLocation += FVector::UpVector * Value;
-
-	this->Direction = CurrentLocation.GetSafeNormal();
-	this->Distance = CurrentLocation.Size();
+	this->PlayerOffset += FVector::UpVector * Value;
 }
 
 void ACatCharacter::MoveRight(float Value)
@@ -73,10 +69,6 @@ void ACatCharacter::MoveRight(float Value)
 	{
 		return;
 	}
-	FVector CurrentLocation = this->Direction * this->Distance;
-	CurrentLocation += FVector::RightVector * Value;
-
-	this->Direction = CurrentLocation.GetSafeNormal();
-	this->Distance = CurrentLocation.Size();
+	this->PlayerOffset += FVector::RightVector * Value;
 }
 
