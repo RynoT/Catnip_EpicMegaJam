@@ -71,20 +71,6 @@ void ARingHandler::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-//FVector ARingHandler::RestrictPosition(const FVector &Position, float RadiusShrink) const
-//{
-//	FVector Closest = this->FindLocationClosestTo(Position);
-//	DrawDebugLine(Super::GetWorld(), Position, Closest, FColor::Purple, true);
-//	FVector Difference = Position - Closest;
-//	if (Difference.SizeSquared() <= FMath::Square(this->RingRadius - RadiusShrink))
-//	{
-//		DrawDebugPoint(Super::GetWorld(), Position, 10, FColor::Orange, true);
-//		return Position;
-//	}
-//	DrawDebugPoint(Super::GetWorld(), Closest + Difference.GetSafeNormal() * (this->RingRadius - RadiusShrink), 10, FColor::Red, true);
-//	return Closest + Difference.GetSafeNormal() * (this->RingRadius - RadiusShrink);
-//}
-
 FVector ARingHandler::RestrictPositionOffset(const FVector &SplinePosition, const FVector &PositionOffset, float RadiusShrink) const
 {
 	if (PositionOffset.SizeSquared() <= FMath::Square(this->RingRadius - RadiusShrink))
@@ -94,10 +80,15 @@ FVector ARingHandler::RestrictPositionOffset(const FVector &SplinePosition, cons
 	return PositionOffset.GetSafeNormal() * (this->RingRadius - RadiusShrink);
 }
 
+#if 0
 void ARingHandler::UpdateRings()
 {
 	this->DeleteRings();
 
+	if (true)
+	{
+		return;
+	}
 	if (!ensure(this->RingDistance > 0.0f))
 	{
 		return;
@@ -108,7 +99,6 @@ void ARingHandler::UpdateRings()
 	}
 
 	float Length = this->SplineComponent->GetSplineLength();
-	//int32 ccc = 0;
 	for (float i = 0.0f; i < Length; i += this->RingDistance)
 	{
 		FVector Location = this->SplineComponent->GetLocationAtDistanceAlongSpline(i, ESplineCoordinateSpace::World);
@@ -120,14 +110,8 @@ void ARingHandler::UpdateRings()
 		ARing *Ring = Super::GetWorld()->SpawnActor<ARing>(this->RingClass, Location, Rotation, Params);
 		ensure(Ring != nullptr);
 		Ring->UpdatePoints(this->RingStaticMeshes[FMath::RandRange(0, this->RingStaticMeshes.Num() - 1)], this->RingRadius);
-		//if ((++ccc) % 4 == 0)
-		//{
-		//	//Ring->UpdateColor(FColor::Cyan);
-		//}
 
 		this->Rings.Add(Ring);
-
-		//UE_LOG(LogTemp, Log, TEXT("Spawned: %s"), *Location.ToString());
 	}
 }
 
@@ -147,7 +131,99 @@ void ARingHandler::DeleteRings()
 	}
 	this->Rings.Empty();
 }
+#endif
 
+ARing* ARingHandler::SpawnRing(int32 Index)
+{
+	float Distance = this->RingDistance * Index;
+
+	FVector Location = this->SplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+	FRotator Rotation = this->SplineComponent->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	ARing *Ring = Super::GetWorld()->SpawnActor<ARing>(this->RingClass, Location, Rotation, Params);
+	ensure(Ring != nullptr);
+	Ring->UpdatePoints(this->RingStaticMeshes[FMath::RandRange(0, this->RingStaticMeshes.Num() - 1)], this->RingRadius);
+	return Ring;
+}
+
+void ARingHandler::UpdateHandler(FVector PawnLocation)
+{
+	float InputKey = this->SplineComponent->FindInputKeyClosestToWorldLocation(PawnLocation);
+	float DistanceAtLocation = this->GetDistanceAtInputKey(InputKey);
+	if (FMath::IsNearlyZero(DistanceAtLocation))
+	{
+		DistanceAtLocation = -(this->SplineComponent->GetLocationAtSplineInputKey(InputKey, ESplineCoordinateSpace::World) - PawnLocation).Size();
+	}
+	float SplineLength = this->SplineComponent->GetSplineLength();
+	check(SplineLength > 0);
+	float CurrentPercentage = DistanceAtLocation / SplineLength;
+
+	const float FadeTolerance = this->RingDistance * 2.0f;
+	const float AppearTolerance = this->RingDistance * 2.0f;
+	float MinDistance = DistanceAtLocation - AppearTolerance;
+	float MaxDistance = DistanceAtLocation + this->RingFadeDistance;
+
+	const int32 MaxRings = FMath::CeilToInt(SplineLength / this->RingDistance);
+	int32 MinRing = FMath::Clamp(int32(MinDistance / this->RingDistance), 0, MaxRings);
+	int32 MaxRing = FMath::Clamp(int32(MaxDistance / this->RingDistance) + 1, 0, MaxRings);
+
+	// Remove unneeded rings. Update transparency of needed ones.
+	for (int32 i = 0; i < this->Rings.Num(); ++i)
+	{
+		ARing *Ring = this->Rings[i];
+		if (Ring != nullptr)
+		{
+			int32 Index = Ring->GetRingIndex();
+			if (Index >= MinRing && Index <= MaxRing)
+			{
+				// This ring is needed. Update its transparency.
+				float Percentage = (Index * this->RingDistance - FadeTolerance) / SplineLength;
+				float Opacity =  FMath::Clamp((Percentage - CurrentPercentage) 
+					/ (this->RingFadeDistance / SplineLength), 0.0f, 1.0f);
+				this->Rings[i]->UpdateRingOpacity(1.0f - Opacity);
+				//UE_LOG(LogTemp, Log, TEXT("%f"), Opacity);
+				//this->Rings[i]->UpdateRingOpacity(FMath::Sin((1.0f - Opacity) * PI * 0.5f));
+
+				continue;
+			}
+			Ring->Destroy();
+		}
+		this->Rings.RemoveAtSwap(i--);
+	}
+	//UE_LOG(LogTemp, Log, TEXT("----"));
+
+	// Spawn any required new rings.
+	for (int32 i = MinRing; i <= MaxRing; ++i)
+	{
+		// Check if ring currently exists.
+		bool bFound = false;
+		for (ARing *Next : this->Rings)
+		{
+			if (Next != nullptr && Next->GetRingIndex() == i)
+			{
+				bFound = true;
+				break;
+			}
+		}
+		if (bFound)
+		{
+			continue;
+		}
+
+		// If we get here it means we have to spawn the ring.
+		ARing *Ring = this->SpawnRing(i);
+		if (ensure(Ring != nullptr))
+		{
+			Ring->SetRingIndex(i);
+			this->Rings.Add(Ring);
+		}
+	}
+}
+
+#if 0
 void ARingHandler::UpdatePawnLocation(FVector Location)
 {
 	float InputKey = this->SplineComponent->FindInputKeyClosestToWorldLocation(Location);
@@ -185,6 +261,7 @@ void ARingHandler::UpdatePawnLocation(FVector Location)
 		this->Rings[i]->UpdateRingOpacity(Opacity);
 	}
 }
+#endif
 
 float ARingHandler::GetDistanceAtInputKey(float InputKey) const
 {
@@ -224,15 +301,15 @@ void ARingHandler::PostEditChangeProperty(FPropertyChangedEvent& Event)
 	Super::PostEditChangeProperty(Event);
 
 	FName Name = Event.MemberProperty != nullptr ? Event.MemberProperty->GetFName() : NAME_None;
-	if (Name == GET_MEMBER_NAME_CHECKED(ARingHandler, bDebugUpdateRings))
-	{
-		this->UpdateRings();
-		this->bDebugUpdateRings = false;
-	}
-	if (Name == GET_MEMBER_NAME_CHECKED(ARingHandler, bDebugDeleteRings))
-	{
-		this->DeleteRings();
-		this->bDebugDeleteRings = false;
-	}
+	//if (Name == GET_MEMBER_NAME_CHECKED(ARingHandler, bDebugUpdateRings))
+	//{
+	//	this->UpdateRings();
+	//	this->bDebugUpdateRings = false;
+	//}
+	//if (Name == GET_MEMBER_NAME_CHECKED(ARingHandler, bDebugDeleteRings))
+	//{
+	//	this->DeleteRings();
+	//	this->bDebugDeleteRings = false;
+	//}
 }
 #endif

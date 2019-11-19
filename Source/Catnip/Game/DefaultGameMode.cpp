@@ -57,7 +57,7 @@ void ADefaultGameMode::BeginPlay()
 	if (ensure(TempArray.Num() == 1))
 	{
 		this->RingHandler = Cast<ARingHandler>(TempArray[0]);
-		this->RingHandler->UpdateRings();
+		//this->RingHandler->UpdateRings();
 	}
 }
 
@@ -102,11 +102,6 @@ void ADefaultGameMode::Tick(float DeltaTime)
 		// Restrict PlayerOffset.
 		FVector &PlayerOffset = Character->GetPlayerOffsetRef();
 		{
-			//PlayerOffset = this->RingHandler->RestrictPosition(LocationUpdate + RotationUpdate.RotateVector(PlayerOffset), RadiusShrink);
-			//PlayerOffset = RotationUpdate.UnrotateVector(PlayerOffset - LocationUpdate);
-
-			//FVector Restricted = this->RingHandler->RestrictPosition(LocationUpdate + RotationUpdate.RotateVector(PlayerOffset));
-
 			PlayerOffset = this->RingHandler->RestrictPositionOffset(LocationUpdate, PlayerOffset, RadiusShrink);
 		}
 
@@ -120,8 +115,9 @@ void ADefaultGameMode::Tick(float DeltaTime)
 		}
 
 		// Update character location and rotation.
-		//UE_LOG(LogTemp, Log, TEXT("%s"), *PlayerOffset.ToString());
 		Character->SetActorLocationAndRotation(LocationUpdate + RotationUpdate.RotateVector(this->PlayerOffsetCache), RotationUpdate);
 	}
-	this->RingHandler->UpdatePawnLocation(LocationUpdate);
+	//this->RingHandler->UpdatePawnLocation(LocationUpdate);
+
+	this->RingHandler->UpdateHandler(LocationUpdate);
 }

@@ -24,13 +24,14 @@ protected:
 public:	
 	virtual void Tick(float DeltaTime) override;
 
-	void UpdateRings();
+	void UpdateHandler(FVector PawnLocation);
 
-	void DeleteRings();
+	//void UpdateRings();
 
-	void UpdatePawnLocation(FVector Location);
+	//void DeleteRings();
 
-	//FVector RestrictPosition(const FVector &Position, float RadiusShrink = 0.0f) const;
+	//void UpdatePawnLocation(FVector Location);
+
 	FVector RestrictPositionOffset(const FVector &SplinePosition, const FVector &PositionOffset, float RadiusShrink = 0.0f) const;
 
 	FVector GetLocationAtDistance(float Distance) const;
@@ -49,6 +50,8 @@ public:
 	}
 
 private:
+	ARing *SpawnRing(int32 Index);
+
 	float GetDistanceAtInputKey(float InputKey) const;
 
 protected:

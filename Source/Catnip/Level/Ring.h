@@ -29,6 +29,16 @@ public:
 
 	void UpdateRingOpacity(float RingOpacity);
 
+	FORCEINLINE int32 GetRingIndex() const
+	{
+		return this->RingIndex;
+	}
+
+	FORCEINLINE void SetRingIndex(int32 Index)
+	{
+		this->RingIndex = Index;
+	}
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 RingResolution;
@@ -61,10 +71,12 @@ protected:
 	bool bDebugDisableRotation;
 
 private:
+	int32 RingIndex;
+
 	float LastOpacity;
 	float RequiredOpacity;
 
-	bool bVisible;
+	//bool bVisible;
 	float RotateSpeed;
 };
 
