@@ -9,14 +9,24 @@
 class ARing;
 class UStaticMesh;
 class USplineComponent;
+struct FRingSpawnState;
+struct FActiveRingSpawnRule;
 
-DECLARE_DELEGATE_RetVal_ThreeParams(bool, FRingSpawnRule, ARingHandler*, int32, float&);
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FRingSpawnRule, FRingSpawnState &, FActiveRingSpawnRule &);
 
 UENUM(BlueprintType)
-enum class ERingType : uint8
+enum class ERingMeshType : uint8
 {
-	MultipleMesh, SingleMesh
+	SingleMesh, MultipleMesh
 };
+
+UENUM(BlueprintType)
+enum class ERingOffsetType : uint8
+{
+	Random, Fixed, Incremental
+};
+
+
 
 USTRUCT()
 struct FActiveRingSpawnRule
@@ -29,7 +39,38 @@ public:
 
 	FRingSpawnRule Rule;
 
-	float CacheMemory;
+	uint8 CacheMemory[8];
+
+	template<typename T, uint64 Offset = 0>
+	FORCEINLINE T* GetCache()
+	{
+		return reinterpret_cast<T*>(&this->CacheMemory[Offset]);
+	}
+};
+
+USTRUCT()
+struct FRingSpawnState
+{
+	GENERATED_BODY()
+
+public:
+	float Radius;
+	FColor Color;
+
+	float RotationSpeedMin;
+	float RotationSpeedMax;
+	float RotationForceRerollMin;
+
+	float RotationOffset;
+	ERingOffsetType OffsetType;
+	float OffsetCounter;
+
+	UPROPERTY()
+	UStaticMesh *Mesh;
+	ERingMeshType MeshType;
+
+	UPROPERTY()
+	UMaterialInterface *MaterialInterface;
 };
 
 UCLASS()
@@ -64,7 +105,16 @@ public:
 	ARingHandler* SpawnRule_SetRadius(int32 OnRing, float NewRadius, int32 TransitionRings = 0);
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
-	ARingHandler* SpawnRule_SetMesh(int32 OnRing, UStaticMesh *NewMesh, ERingType Type, bool bSingleRing = true);
+	ARingHandler* SpawnRule_SetMesh(int32 OnRing, UStaticMesh *NewMesh, UMaterialInterface *NewMaterial, ERingMeshType Type, bool bSingleRing = true);
+
+	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
+	ARingHandler *SpawnRule_SetOffset(int32 OnRing, float Value, ERingOffsetType Type);
+
+	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
+	ARingHandler *SpawnRule_SetRotation(int32 OnRing, float MinSpeed, float MaxSpeed, float ForceRerollMin = -1.0f);
+
+	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
+	ARingHandler *SpawnRule_SetColor(int32 OnRing, FColor Color);
 
 #if WITH_EDITOR
 	void PostEditChangeProperty(struct FPropertyChangedEvent& event) override;
@@ -74,30 +124,38 @@ public:
 
 	ARing *SpawnRing(int32 Index);
 
-	float GetRingRadius() const;
-	void SetRingRadius(float Radius);
-
-	UStaticMesh *GetDefaultRingMesh() const;
-	void SetRingMesh(UStaticMesh *Mesh, ERingType Type);
+	FORCEINLINE FRingSpawnState& GetSpawnState()
+	{
+		return this->SpawnState;
+	}
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float RingRadius;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RingDistance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RingFadeDistance;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float RingSpawnRadius;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float RingSpawnRotateSpeedMin;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float RingSpawnRotateSpeedMax;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float RingSpawnRotationOffset;
+
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<ARing> RingClass;
 
 	UPROPERTY(EditDefaultsOnly)
-	UStaticMesh *RingMeshDefault;
-
-	//UPROPERTY(EditDefaultsOnly)
-	//TArray<UStaticMesh*> RingStaticMeshes;
+	UStaticMesh *RingMeshDefault;	
+	
+	UPROPERTY(EditDefaultsOnly)
+	UMaterialInterface *RingMaterialInterface;
 
 	UPROPERTY()
 	TArray<ARing*> Rings;
@@ -115,36 +173,10 @@ protected:
 	bool bDebugDeleteRings;
 
 private:
-	float SpawnRadius;
-	ERingType SpawnRingType;
-	UStaticMesh *SpawnMesh;
+	UPROPERTY()
+	FRingSpawnState SpawnState;
 
 	UPROPERTY()
 	TArray<FActiveRingSpawnRule> ActiveRules;
-
-//	UPROPERTY()
 	TMap<int32, TArray<FRingSpawnRule>> SpawnRuleMap;
 };
-
-/// INLINE ///
-
-FORCEINLINE float ARingHandler::GetRingRadius() const
-{
-	return this->SpawnRadius;
-}
-
-FORCEINLINE void ARingHandler::SetRingRadius(float Radius)
-{
-	this->SpawnRadius = Radius;
-}
-
-FORCEINLINE UStaticMesh *ARingHandler::GetDefaultRingMesh() const
-{
-	return this->RingMeshDefault;
-}
-
-FORCEINLINE void ARingHandler::SetRingMesh(UStaticMesh *Mesh, ERingType Type)
-{
-	this->SpawnMesh = Mesh;
-	this->SpawnRingType = Type;
-}

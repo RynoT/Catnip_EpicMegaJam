@@ -6,6 +6,7 @@
 #include "Ring.h"
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
+#include "Engine/StaticMesh.h"
 #include "ConstructorHelpers.h"
 #include "Components/SplineComponent.h"
 
@@ -16,11 +17,15 @@ ARingHandler::ARingHandler()
 	static ConstructorHelpers::FClassFinder<ARing> ConstructorRingClass = ConstructorHelpers::FClassFinder<ARing>(CONSTRUCTOR_RING_CLASS);
 	this->RingClass = ensure(ConstructorRingClass.Succeeded()) ? ConstructorRingClass.Class : ARing::StaticClass();
 
-	this->RingRadius = 500.0f;
 	this->RingDistance = 500.0f;
 	this->RingFadeDistance = 8000.0f;
 	this->bDebugUpdateRings = false;
 	this->bDebugDeleteRings = false;
+
+	this->RingSpawnRadius = 500.0f;
+	this->RingSpawnRotationOffset = PI * 2.0f;
+	this->RingSpawnRotateSpeedMin = -25.0f;
+	this->RingSpawnRotateSpeedMax = 25.0f;
 
 	this->SceneComponent = UObject::CreateDefaultSubobject<USceneComponent>(TEXT("HandlerSceneComponent"));
 	Super::RootComponent = this->SceneComponent;
@@ -75,9 +80,16 @@ void ARingHandler::BeginPlay()
 	this->Rings.Empty();
 	this->ActiveRules.Empty();
 
-	this->SpawnRadius = this->RingRadius;
-	this->SpawnRingType = ERingType::SingleMesh;
-	this->SpawnMesh = this->RingMeshDefault;
+	this->SpawnState.Color = FColor::Cyan;
+	this->SpawnState.Mesh = this->RingMeshDefault;
+	this->SpawnState.MeshType = ERingMeshType::MultipleMesh;
+	this->SpawnState.Radius = this->RingSpawnRadius;
+	this->SpawnState.RotationOffset = this->RingSpawnRotationOffset;
+	this->SpawnState.OffsetType = ERingOffsetType::Random;
+	this->SpawnState.RotationSpeedMin = this->RingSpawnRotateSpeedMin;
+	this->SpawnState.RotationSpeedMax = this->RingSpawnRotateSpeedMax;
+	this->SpawnState.RotationForceRerollMin = -1.0f;
+	this->SpawnState.MaterialInterface = this->RingMaterialInterface;
 }
 
 void ARingHandler::Tick(float DeltaTime)
@@ -87,11 +99,11 @@ void ARingHandler::Tick(float DeltaTime)
 
 FVector ARingHandler::RestrictPositionOffset(const FVector &SplinePosition, const FVector &PositionOffset, float RadiusShrink) const
 {
-	if (PositionOffset.SizeSquared() <= FMath::Square(this->RingRadius - RadiusShrink))
+	if (PositionOffset.SizeSquared() <= FMath::Square(this->RingSpawnRadius - RadiusShrink))
 	{
 		return PositionOffset;
 	}
-	return PositionOffset.GetSafeNormal() * (this->RingRadius - RadiusShrink);
+	return PositionOffset.GetSafeNormal() * (this->RingSpawnRadius - RadiusShrink);
 }
 
 #if 0
@@ -166,35 +178,88 @@ void ARingHandler::AddSpawnRule(int32 OnRing, FRingSpawnRule Rule)
 
 ARingHandler* ARingHandler::SpawnRule_SetRadius(int32 OnRing, float NewRadius, int32 TransitionRings)
 {
-	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](ARingHandler *Handler, int32 RingCounter, float &CacheMemory)
+	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](FRingSpawnState &SpawnState, FActiveRingSpawnRule &SpawnRule)
 		{
-			if (RingCounter <= 1)
+			float &Memory = *SpawnRule.GetCache<float>();
+			if (SpawnRule.RingCounter <= 1)
 			{
-				CacheMemory = Handler->GetRingRadius();
+				Memory = SpawnState.Radius;
 			}
-			float Percentage = TransitionRings <= 0 ? 1.0f : FMath::Clamp(RingCounter / float(TransitionRings + 1), 0.0f, 1.0f);
-			float NextRadius = CacheMemory + (NewRadius - CacheMemory) * FMath::Sin(Percentage * PI / 2.0f);
-			Handler->SetRingRadius(NextRadius);
-			return RingCounter > TransitionRings;
+			float Percentage = TransitionRings <= 0 ? 1.0f : FMath::Clamp(SpawnRule.RingCounter / float(TransitionRings + 1), 0.0f, 1.0f);
+			float NextRadius = Memory + (NewRadius - Memory) * FMath::Sin(Percentage * PI / 2.0f);
+			SpawnState.Radius = NextRadius;
+			return SpawnRule.RingCounter > TransitionRings;
 		}));
 	return this;
 }
 
-ARingHandler* ARingHandler::SpawnRule_SetMesh(int32 OnRing, UStaticMesh *NewMesh, ERingType Type, bool bSingleRing)
+ARingHandler* ARingHandler::SpawnRule_SetMesh(int32 OnRing, UStaticMesh *NewMesh, UMaterialInterface *NewMaterial, ERingMeshType Type, bool bSingleRing)
 {
-	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](ARingHandler *Handler, int32 RingCounter, float &CacheMemory)
+	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](FRingSpawnState &SpawnState, FActiveRingSpawnRule &SpawnRule)
 		{
-			Handler->SetRingMesh(NewMesh, Type);
+			UStaticMesh *&MeshMemory = *SpawnRule.GetCache<UStaticMesh*>();
+			ERingMeshType &MeshTypeMemory = *SpawnRule.GetCache<ERingMeshType, sizeof(UStaticMesh*)>();
+			UMaterialInterface *&MeshMaterialMemory = *SpawnRule.GetCache<UMaterialInterface*, sizeof(UStaticMesh*) + sizeof(ERingMeshType)>();
+			if (SpawnRule.RingCounter <= 1)
+			{
+				MeshMemory = SpawnState.Mesh;
+				MeshTypeMemory = SpawnState.MeshType;
+				MeshMaterialMemory = SpawnState.MaterialInterface;
+			}
+
+			SpawnState.Mesh = NewMesh;
+			SpawnState.MeshType = Type;
+			SpawnState.MaterialInterface = NewMaterial;
+
 			if (!bSingleRing)
 			{
 				return true;
 			}
-			if (RingCounter >= 2)
+			if (SpawnRule.RingCounter >= 2)
 			{
-				Handler->SetRingMesh(Handler->GetDefaultRingMesh(), ERingType::MultipleMesh);
+				SpawnState.Mesh = MeshMemory;
+				SpawnState.MeshType = MeshTypeMemory;
+				SpawnState.MaterialInterface = MeshMaterialMemory;
 				return true;
 			}
 			return false;
+		}));
+	return this;
+}
+
+ARingHandler* ARingHandler::SpawnRule_SetOffset(int32 OnRing, float Value, ERingOffsetType Type)
+{
+	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](FRingSpawnState &SpawnState, FActiveRingSpawnRule &SpawnRule)
+		{
+			SpawnState.RotationOffset = Value;
+			SpawnState.OffsetType = Type;
+			if (Type == ERingOffsetType::Incremental)
+			{
+				SpawnState.OffsetCounter = 0.0f;
+			}
+			return true;
+		}));
+	return this;
+}
+
+ARingHandler* ARingHandler::SpawnRule_SetRotation(int32 OnRing, float MinSpeed, float MaxSpeed, float ForceRerollMin)
+{
+	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](FRingSpawnState &SpawnState, FActiveRingSpawnRule &SpawnRule)
+		{
+			SpawnState.RotationSpeedMin = MinSpeed;
+			SpawnState.RotationSpeedMax = MaxSpeed;
+			SpawnState.RotationForceRerollMin = ForceRerollMin;
+			return true;
+		}));
+	return this;
+}
+
+ARingHandler* ARingHandler::SpawnRule_SetColor(int32 OnRing, FColor Color)
+{
+	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](FRingSpawnState &SpawnState, FActiveRingSpawnRule &SpawnRule)
+		{
+			SpawnState.Color = Color;
+			return true;
 		}));
 	return this;
 }
@@ -218,7 +283,7 @@ ARing* ARingHandler::SpawnRing(int32 Index)
 		{
 			continue;
 		}
-		if (ActiveRule.Rule.Execute(this, ActiveRule.RingCounter, ActiveRule.CacheMemory))
+		if (ActiveRule.Rule.Execute(this->GetSpawnState(), ActiveRule))
 		{
 			this->ActiveRules.RemoveAtSwap(i--);
 		}
@@ -236,7 +301,8 @@ ARing* ARingHandler::SpawnRing(int32 Index)
 	ARing *Ring = Super::GetWorld()->SpawnActor<ARing>(this->RingClass, Location, Rotation, Params);
 	ensure(Ring != nullptr);
 	//UE_LOG(LogTemp, Log, TEXT("%d, %f"), Index, this->SpawnRadius);
-	Ring->UpdatePoints(this->SpawnMesh, this->SpawnRingType == ERingType::SingleMesh, this->SpawnRadius);
+	//Ring->UpdatePoints(this->SpawnMesh, this->SpawnRingType == ERingType::SingleMesh, this->SpawnRadius);
+	Ring->InitRing(&this->GetSpawnState());
 	return Ring;
 }
 

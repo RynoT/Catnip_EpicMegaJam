@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Ring.generated.h"
 
+struct FRingSpawnState;
 class USplineComponent;
 
 UCLASS()
@@ -23,9 +24,11 @@ protected:
 public:	
 	virtual void Tick(float DeltaTime) override;
 
-	void UpdateColor(FLinearColor Color);
+	void InitRing(FRingSpawnState *State);
 
-	void UpdatePoints(UStaticMesh *Mesh, bool bSingleMesh, float Radius);
+	//void UpdateColor(FLinearColor Color);
+
+	//void UpdatePoints(UStaticMesh *Mesh, bool bSingleMesh, float Radius);
 
 	void UpdateRingOpacity(float RingOpacity);
 
@@ -52,20 +55,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RotateSpeedRerollZone;
 
-	UPROPERTY()
-	UStaticMeshComponent *StaticMeshComponent;
-
 	UPROPERTY(VisibleAnywhere)
 	USceneComponent *SceneComponent;
 
 	UPROPERTY(VisibleAnywhere)
 	USplineComponent *SplineComponent;
 
-	UPROPERTY(EditDefaultsOnly)
-	UMaterialInterface *MaterialInterface;
-
 	UPROPERTY()
 	UMaterialInstanceDynamic *MaterialInstanceDynamic;
+
+	UPROPERTY()
+	TArray<UStaticMeshComponent*> StaticMeshComponents;
 
 	UPROPERTY(EditDefaultsOnly)
 	bool bDebugDisableRotation;
