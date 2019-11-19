@@ -26,8 +26,6 @@ enum class ERingOffsetType : uint8
 	Random, Fixed, Incremental
 };
 
-
-
 USTRUCT()
 struct FActiveRingSpawnRule
 {
@@ -39,7 +37,7 @@ public:
 
 	FRingSpawnRule Rule;
 
-	uint8 CacheMemory[8];
+	uint8 CacheMemory[18];
 
 	template<typename T, uint64 Offset = 0>
 	FORCEINLINE T* GetCache()
@@ -74,6 +72,22 @@ public:
 	UMaterialInterface *MaterialInterface;
 };
 
+USTRUCT()
+struct FRingBeatSpawnState
+{
+	GENERATED_BODY()
+
+public:
+	FColor Color;
+	TArray<int32> Rings;
+
+	UPROPERTY()
+	TArray<UStaticMesh*> Meshes;
+
+	UPROPERTY()
+	UMaterialInterface *MaterialInterface;
+};
+
 UCLASS()
 class CATNIP_API ARingHandler : public AActor
 {
@@ -103,6 +117,9 @@ public:
 	void AddSpawnRule(int32 OnRing, FRingSpawnRule Rule);
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
+	ARingHandler *SpawnRule_SetBeatRings(FString Input, TArray<UStaticMesh*> Meshes, UMaterialInterface *MeshMaterial, FColor Color = FColor(240, 5, 200));
+
+	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
 	ARingHandler* SpawnRule_SetRadius(int32 OnRing, float NewRadius, int32 TransitionRings = 0);
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
@@ -115,7 +132,7 @@ public:
 	ARingHandler* SpawnRule_SetRotation(int32 OnRing, float MinSpeed, float MaxSpeed, float ForceRerollMin = -1.0f);
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
-	ARingHandler* SpawnRule_SetColor(int32 OnRing, FColor Color);
+	ARingHandler* SpawnRule_SetColor(int32 OnRing, FColor Color, bool bSingleRing = false);
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
 	ARingHandler *SpawnRule_SetResolution(int32 OnRing, int32 Resolution = 12);
@@ -182,6 +199,9 @@ protected:
 private:
 	UPROPERTY()
 	FRingSpawnState SpawnState;
+
+	UPROPERTY()
+	FRingBeatSpawnState BeatSpawnState;
 
 	UPROPERTY()
 	TArray<FActiveRingSpawnRule> ActiveRules;

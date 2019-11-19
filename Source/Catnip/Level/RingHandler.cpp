@@ -81,7 +81,7 @@ void ARingHandler::BeginPlay()
 	this->Rings.Empty();
 	this->ActiveRules.Empty();
 
-	this->SpawnState.Color = FColor::Cyan;
+	this->SpawnState.Color = FColor(45, 195, 220);
 	this->SpawnState.Mesh = this->RingMeshDefault;
 	this->SpawnState.MeshType = ERingMeshType::MultipleMesh;
 	this->SpawnState.Radius = this->RingSpawnRadius;
@@ -208,6 +208,8 @@ ARingHandler* ARingHandler::SpawnRule_SetMesh(int32 OnRing, UStaticMesh *NewMesh
 				MeshTypeMemory = SpawnState.MeshType;
 				MeshMaterialMemory = SpawnState.MaterialInterface;
 			}
+			auto a = sizeof(UStaticMesh *) + sizeof(ERingMeshType) + sizeof(UMaterialInterface *);
+			auto b = sizeof(SpawnRule.CacheMemory);
 
 			SpawnState.Mesh = NewMesh;
 			SpawnState.MeshType = Type;
@@ -256,12 +258,27 @@ ARingHandler* ARingHandler::SpawnRule_SetRotation(int32 OnRing, float MinSpeed, 
 	return this;
 }
 
-ARingHandler* ARingHandler::SpawnRule_SetColor(int32 OnRing, FColor Color)
+ARingHandler* ARingHandler::SpawnRule_SetColor(int32 OnRing, FColor Color, bool bSingleRing)
 {
 	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](FRingSpawnState &SpawnState, FActiveRingSpawnRule &SpawnRule)
 		{
+			FColor &ColorMemory = *SpawnRule.GetCache<FColor>();
+			if (SpawnRule.RingCounter <= 1)
+			{
+				ColorMemory = SpawnState.Color;
+			}
 			SpawnState.Color = Color;
-			return true;
+
+			if (!bSingleRing)
+			{
+				return true;
+			}
+			if (SpawnRule.RingCounter >= 2)
+			{
+				SpawnState.Color = ColorMemory;
+				return true;
+			}
+			return false;
 		}));
 	return this;
 }
@@ -273,6 +290,32 @@ ARingHandler* ARingHandler::SpawnRule_SetResolution(int32 OnRing, int32 Resoluti
 			SpawnState.Resolution = Resolution;
 			return true;
 		}));
+	return this;
+}
+
+ARingHandler* ARingHandler::SpawnRule_SetBeatRings(FString Input, TArray<UStaticMesh*> Meshes, UMaterialInterface *MeshMaterial, FColor Color)
+{
+	TArray<FString> StrArray;
+	Input.ParseIntoArray(StrArray, TEXT(","), true);
+
+	TArray<int32> NumArray;
+	NumArray.Reserve(StrArray.Num());
+	
+	for (int32 i = 0; i < StrArray.Num(); ++i)
+	{
+		int32 Num = FCString::Atoi(*StrArray[i].TrimStartAndEnd());
+		if (NumArray.Contains(Num))
+		{
+			continue;
+		}
+		NumArray.Add(Num);
+	}
+	NumArray.Sort();
+
+	this->BeatSpawnState.Rings = NumArray;
+	this->BeatSpawnState.Meshes = Meshes;
+	this->BeatSpawnState.MaterialInterface = MeshMaterial;
+	this->BeatSpawnState.Color = Color;
 	return this;
 }
 
@@ -388,6 +431,14 @@ void ARingHandler::UpdateHandler(FVector PawnLocation)
 		if (bFound || !bCanSpawn)
 		{
 			continue;
+		}
+
+		// Check if ring is a beat ring.
+		if (this->BeatSpawnState.Rings.Contains(i + 1))
+		{
+			this->SpawnRule_SetMesh(i + 1, this->BeatSpawnState.Meshes[FMath::RandRange(0, this->BeatSpawnState
+				.Meshes.Num() - 1)], this->BeatSpawnState.MaterialInterface, ERingMeshType::SingleMesh, true);
+			this->SpawnRule_SetColor(i + 1, this->BeatSpawnState.Color, true);
 		}
 
 		// If we get here it means we have to spawn the ring. First ensure any rules are set as active.
