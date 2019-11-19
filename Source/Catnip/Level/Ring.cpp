@@ -138,7 +138,8 @@ void ARing::InitRing(FRingSpawnState *State)
 	if (State->MeshType == ERingMeshType::SingleMesh)
 	{
 		UStaticMeshComponent *StaticMeshComponent = CreateStaticMesh(ActorLocation, FVector(State->Radius) * 0.2f);
-		StaticMeshComponent->AddLocalRotation(FRotator(0.0f, 0.0f, RotationOffset));
+		StaticMeshComponent->SetWorldRotation(Super::GetActorRotation());
+		StaticMeshComponent->AddRelativeRotation(FRotator(0.0f, 0.0f, RotationOffset));
 		this->StaticMeshComponents.Add(StaticMeshComponent);
 	}
 	else if(State->MeshType == ERingMeshType::MultipleMesh)
