@@ -25,7 +25,7 @@ public:
 
 	void UpdateColor(FLinearColor Color);
 
-	void UpdatePoints(UStaticMesh *Mesh, float Radius);
+	void UpdatePoints(UStaticMesh *Mesh, bool bSingleMesh, float Radius);
 
 	void UpdateRingOpacity(float RingOpacity);
 

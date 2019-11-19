@@ -64,6 +64,20 @@ FVector ARingHandler::FindLocationClosestTo(FVector Location) const
 void ARingHandler::BeginPlay()
 {
 	Super::BeginPlay();
+
+	for (int32 i = 0; i < this->Rings.Num(); ++i)
+	{
+		if (this->Rings[i] != nullptr)
+		{
+			this->Rings[i]->Destroy();
+		}
+	}
+	this->Rings.Empty();
+	this->ActiveRules.Empty();
+
+	this->SpawnRadius = this->RingRadius;
+	this->SpawnRingType = ERingType::SingleMesh;
+	this->SpawnMesh = this->RingMeshDefault;
 }
 
 void ARingHandler::Tick(float DeltaTime)
@@ -133,8 +147,84 @@ void ARingHandler::DeleteRings()
 }
 #endif
 
+void ARingHandler::AddSpawnRule(int32 OnRing, FRingSpawnRule Rule)
+{
+	--OnRing;
+
+	TArray<FRingSpawnRule> *Array;
+	if (this->SpawnRuleMap.Contains(OnRing))
+	{
+		Array = &this->SpawnRuleMap[OnRing];
+	}
+	else
+	{
+		Array = &this->SpawnRuleMap.Add(OnRing, TArray<FRingSpawnRule>());
+	}
+	check(Array != nullptr);
+	Array->Add(Rule);
+}
+
+ARingHandler* ARingHandler::SpawnRule_SetRadius(int32 OnRing, float NewRadius, int32 TransitionRings)
+{
+	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](ARingHandler *Handler, int32 RingCounter, float &CacheMemory)
+		{
+			if (RingCounter <= 1)
+			{
+				CacheMemory = Handler->GetRingRadius();
+			}
+			float Percentage = TransitionRings <= 0 ? 1.0f : FMath::Clamp(RingCounter / float(TransitionRings + 1), 0.0f, 1.0f);
+			float NextRadius = CacheMemory + (NewRadius - CacheMemory) * FMath::Sin(Percentage * PI / 2.0f);
+			Handler->SetRingRadius(NextRadius);
+			return RingCounter > TransitionRings;
+		}));
+	return this;
+}
+
+ARingHandler* ARingHandler::SpawnRule_SetMesh(int32 OnRing, UStaticMesh *NewMesh, ERingType Type, bool bSingleRing)
+{
+	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](ARingHandler *Handler, int32 RingCounter, float &CacheMemory)
+		{
+			Handler->SetRingMesh(NewMesh, Type);
+			if (!bSingleRing)
+			{
+				return true;
+			}
+			if (RingCounter >= 2)
+			{
+				Handler->SetRingMesh(Handler->GetDefaultRingMesh(), ERingType::MultipleMesh);
+				return true;
+			}
+			return false;
+		}));
+	return this;
+}
+
 ARing* ARingHandler::SpawnRing(int32 Index)
 {
+	// Increment rule ring counter.
+	for (FActiveRingSpawnRule &Next : this->ActiveRules)
+	{
+		if (Next.RingIndex <= Index)
+		{
+			++Next.RingCounter;
+		}
+	}
+
+	// Execute all rules.
+	for (int32 i = 0; i < this->ActiveRules.Num(); ++i)
+	{
+		FActiveRingSpawnRule &ActiveRule = this->ActiveRules[i];
+		if (ActiveRule.RingIndex > Index)
+		{
+			continue;
+		}
+		if (ActiveRule.Rule.Execute(this, ActiveRule.RingCounter, ActiveRule.CacheMemory))
+		{
+			this->ActiveRules.RemoveAtSwap(i--);
+		}
+	}
+
+	// Spawn the ring. The above rules will have set the conditions for us.
 	float Distance = this->RingDistance * Index;
 
 	FVector Location = this->SplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
@@ -145,7 +235,8 @@ ARing* ARingHandler::SpawnRing(int32 Index)
 
 	ARing *Ring = Super::GetWorld()->SpawnActor<ARing>(this->RingClass, Location, Rotation, Params);
 	ensure(Ring != nullptr);
-	Ring->UpdatePoints(this->RingStaticMeshes[FMath::RandRange(0, this->RingStaticMeshes.Num() - 1)], this->RingRadius);
+	//UE_LOG(LogTemp, Log, TEXT("%d, %f"), Index, this->SpawnRadius);
+	Ring->UpdatePoints(this->SpawnMesh, this->SpawnRingType == ERingType::SingleMesh, this->SpawnRadius);
 	return Ring;
 }
 
@@ -198,22 +289,38 @@ void ARingHandler::UpdateHandler(FVector PawnLocation)
 	// Spawn any required new rings.
 	for (int32 i = MinRing; i <= MaxRing; ++i)
 	{
-		// Check if ring currently exists.
-		bool bFound = false;
+		// Don't spawn if ring exists. Only spawn if previous ring exists (spawn linearly).
+		bool bFound = false, bCanSpawn = i == 0;
 		for (ARing *Next : this->Rings)
 		{
-			if (Next != nullptr && Next->GetRingIndex() == i)
+			if (Next == nullptr)
+			{
+				continue;
+			}
+			if (Next->GetRingIndex() == i - 1)
+			{
+				bCanSpawn = true;
+			}
+			if (Next->GetRingIndex() == i)
 			{
 				bFound = true;
 				break;
 			}
 		}
-		if (bFound)
+		if (bFound || !bCanSpawn)
 		{
 			continue;
 		}
 
-		// If we get here it means we have to spawn the ring.
+		// If we get here it means we have to spawn the ring. First ensure any rules are set as active.
+		if (this->SpawnRuleMap.Contains(i))
+		{
+			for (FRingSpawnRule &Rule : this->SpawnRuleMap[i])
+			{
+				this->ActiveRules.Add(FActiveRingSpawnRule{ i, 0, Rule });
+			}
+		}
+
 		ARing *Ring = this->SpawnRing(i);
 		if (ensure(Ring != nullptr))
 		{

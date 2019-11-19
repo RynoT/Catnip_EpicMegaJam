@@ -40,7 +40,7 @@ void ARing::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 
 #if WITH_EDITOR
-	this->UpdatePoints(nullptr, 500.0f);
+	//this->UpdatePoints(nullptr, 500.0f);
 #endif
 }
 
@@ -63,8 +63,12 @@ void ARing::UpdateColor(FLinearColor Color)
 	this->MaterialInstanceDynamic->SetVectorParameterValue(TEXT("Color"), Color);
 }
 
-void ARing::UpdatePoints(UStaticMesh *Mesh, float Radius)
+void ARing::UpdatePoints(UStaticMesh *Mesh, bool bSingleMesh, float Radius)
 {
+	if (Mesh == nullptr)
+	{
+		return;
+	}
 	if (!ensure(this->SplineComponent != nullptr))
 	{
 		return;
@@ -81,27 +85,15 @@ void ARing::UpdatePoints(UStaticMesh *Mesh, float Radius)
 	FVector Location = Super::GetActorLocation();
 	FRotator Rotation = Super::GetActorRotation();
 
-	constexpr float PI2 = PI * 2.0f;
-	const float Increment = PI2 / this->RingResolution;
-	const float AngleOffset = FMath::RandRange(0.0f, PI2);
-	for (int i = 0; i < this->RingResolution; ++i)
+	if (bSingleMesh&&false)
 	{
-		float Sin, Cos;
-		FMath::SinCos(&Sin, &Cos, Increment * i + AngleOffset);
-
-		FVector Point = Rotation.RotateVector(FVector(0.0f, Sin, Cos)) * Radius + Location;
-		this->SplineComponent->AddSplinePoint(Point, ESplineCoordinateSpace::World, false);
-
-		if (Mesh == nullptr)
-		{
-			continue;
-		}
 		this->StaticMeshComponent = NewObject<UStaticMeshComponent>(this->SplineComponent);
 		this->StaticMeshComponent->SetCastShadow(false);
 		this->StaticMeshComponent->SetStaticMesh(Mesh);
 		this->StaticMeshComponent->SetMobility(EComponentMobility::Movable);
 		this->StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		this->StaticMeshComponent->SetWorldLocationAndRotation(Point, FRotator::ZeroRotator);
+		this->StaticMeshComponent->SetWorldLocationAndRotation(Location, FRotator::ZeroRotator);
+		this->StaticMeshComponent->SetWorldScale3D(FVector(Radius, Radius, Radius));
 		this->StaticMeshComponent->AttachToComponent(this->SplineComponent, FAttachmentTransformRules::KeepWorldTransform);
 		if (this->MaterialInstanceDynamic == nullptr && this->MaterialInterface != nullptr)
 		{
@@ -112,6 +104,37 @@ void ARing::UpdatePoints(UStaticMesh *Mesh, float Radius)
 			this->StaticMeshComponent->SetMaterial(0, this->MaterialInstanceDynamic);
 		}
 		this->StaticMeshComponent->RegisterComponent();
+	}
+	else
+	{
+		constexpr float PI2 = PI * 2.0f;
+		const float Increment = PI2 / this->RingResolution;
+		const float AngleOffset = FMath::RandRange(0.0f, PI2);
+		for (int i = 0; i < this->RingResolution; ++i)
+		{
+			float Sin, Cos;
+			FMath::SinCos(&Sin, &Cos, Increment * i + AngleOffset);
+
+			FVector Point = Rotation.RotateVector(FVector(0.0f, Sin, Cos)) * Radius + Location;
+			this->SplineComponent->AddSplinePoint(Point, ESplineCoordinateSpace::World, false);
+
+			this->StaticMeshComponent = NewObject<UStaticMeshComponent>(this->SplineComponent);
+			this->StaticMeshComponent->SetCastShadow(false);
+			this->StaticMeshComponent->SetStaticMesh(Mesh);
+			this->StaticMeshComponent->SetMobility(EComponentMobility::Movable);
+			this->StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			this->StaticMeshComponent->SetWorldLocationAndRotation(Point, FRotator::ZeroRotator);
+			this->StaticMeshComponent->AttachToComponent(this->SplineComponent, FAttachmentTransformRules::KeepWorldTransform);
+			if (this->MaterialInstanceDynamic == nullptr && this->MaterialInterface != nullptr)
+			{
+				this->MaterialInstanceDynamic = UMaterialInstanceDynamic::Create(this->MaterialInterface, this);
+			}
+			if (this->MaterialInstanceDynamic != nullptr)
+			{
+				this->StaticMeshComponent->SetMaterial(0, this->MaterialInstanceDynamic);
+			}
+			this->StaticMeshComponent->RegisterComponent();
+		}
 	}
 	this->SplineComponent->UpdateSpline();
 }
