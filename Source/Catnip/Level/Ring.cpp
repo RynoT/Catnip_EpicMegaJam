@@ -14,7 +14,6 @@
 ARing::ARing()
 {
 	//this->bVisible = true;
-	this->RingResolution = 12;
 
 	this->RotateSpeedMin = -25.0f;
 	this->RotateSpeedMax = 25.0f;
@@ -70,7 +69,7 @@ void ARing::UpdateColor(FLinearColor Color)
 
 void ARing::InitRing(FRingSpawnState *State)
 {
-	if (State == nullptr || State->Mesh == nullptr || this->SplineComponent == nullptr || this->RingResolution <= 0.0f)
+	if (State == nullptr || State->Mesh == nullptr || this->SplineComponent == nullptr || State->Resolution <= 0)
 	{
 		ensure(false);
 		return;
@@ -128,11 +127,11 @@ void ARing::InitRing(FRingSpawnState *State)
 	do
 	{
 		this->RotateSpeed = FMath::RandRange(State->RotationSpeedMin, State->RotationSpeedMax);
-		if (State->RotationForceRerollMin < (State->RotationSpeedMax - State->RotationSpeedMin))
-		{
-			ensure(false);
-			break;
-		}
+		//if (State->RotationForceRerollMin < (State->RotationSpeedMax - State->RotationSpeedMin))
+		//{
+		//	ensure(false);
+		//	break;
+		//}
 	} while (FMath::Abs(this->RotateSpeed) <= State->RotationForceRerollMin);
 
 	// Spawn mesh.
@@ -145,8 +144,8 @@ void ARing::InitRing(FRingSpawnState *State)
 	else if(State->MeshType == ERingMeshType::MultipleMesh)
 	{
 		constexpr float PI2 = PI * 2.0f;
-		const float Increment = PI2 / this->RingResolution;
-		for (int i = 0; i < this->RingResolution; ++i)
+		const float Increment = PI2 / State->Resolution;
+		for (int i = 0; i < State->Resolution; ++i)
 		{
 			float Sin, Cos;
 			FMath::SinCos(&Sin, &Cos, Increment * i + RotationOffset);

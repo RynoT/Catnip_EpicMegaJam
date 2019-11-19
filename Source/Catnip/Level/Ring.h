@@ -44,9 +44,6 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 RingResolution;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RotateSpeedMin;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

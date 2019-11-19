@@ -55,6 +55,7 @@ struct FRingSpawnState
 
 public:
 	float Radius;
+	int32 Resolution;
 	FColor Color;
 
 	float RotationSpeedMin;
@@ -108,13 +109,16 @@ public:
 	ARingHandler* SpawnRule_SetMesh(int32 OnRing, UStaticMesh *NewMesh, UMaterialInterface *NewMaterial, ERingMeshType Type, bool bSingleRing = true);
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
-	ARingHandler *SpawnRule_SetOffset(int32 OnRing, float Value, ERingOffsetType Type);
+	ARingHandler* SpawnRule_SetOffset(int32 OnRing, float Value, ERingOffsetType Type);
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
-	ARingHandler *SpawnRule_SetRotation(int32 OnRing, float MinSpeed, float MaxSpeed, float ForceRerollMin = -1.0f);
+	ARingHandler* SpawnRule_SetRotation(int32 OnRing, float MinSpeed, float MaxSpeed, float ForceRerollMin = -1.0f);
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
-	ARingHandler *SpawnRule_SetColor(int32 OnRing, FColor Color);
+	ARingHandler* SpawnRule_SetColor(int32 OnRing, FColor Color);
+
+	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
+	ARingHandler *SpawnRule_SetResolution(int32 OnRing, int32 Resolution = 12);
 
 #if WITH_EDITOR
 	void PostEditChangeProperty(struct FPropertyChangedEvent& event) override;
@@ -138,6 +142,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RingSpawnRadius;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 RingSpawnResolution;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RingSpawnRotateSpeedMin;

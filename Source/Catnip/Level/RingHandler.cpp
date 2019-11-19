@@ -23,6 +23,7 @@ ARingHandler::ARingHandler()
 	this->bDebugDeleteRings = false;
 
 	this->RingSpawnRadius = 500.0f;
+	this->RingSpawnResolution = 12;
 	this->RingSpawnRotationOffset = PI * 2.0f;
 	this->RingSpawnRotateSpeedMin = -25.0f;
 	this->RingSpawnRotateSpeedMax = 25.0f;
@@ -84,6 +85,7 @@ void ARingHandler::BeginPlay()
 	this->SpawnState.Mesh = this->RingMeshDefault;
 	this->SpawnState.MeshType = ERingMeshType::MultipleMesh;
 	this->SpawnState.Radius = this->RingSpawnRadius;
+	this->SpawnState.Resolution = this->RingSpawnResolution;
 	this->SpawnState.RotationOffset = this->RingSpawnRotationOffset;
 	this->SpawnState.OffsetType = ERingOffsetType::Random;
 	this->SpawnState.RotationSpeedMin = this->RingSpawnRotateSpeedMin;
@@ -259,6 +261,16 @@ ARingHandler* ARingHandler::SpawnRule_SetColor(int32 OnRing, FColor Color)
 	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](FRingSpawnState &SpawnState, FActiveRingSpawnRule &SpawnRule)
 		{
 			SpawnState.Color = Color;
+			return true;
+		}));
+	return this;
+}
+
+ARingHandler* ARingHandler::SpawnRule_SetResolution(int32 OnRing, int32 Resolution)
+{
+	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](FRingSpawnState &SpawnState, FActiveRingSpawnRule &SpawnRule)
+		{
+			SpawnState.Resolution = Resolution;
 			return true;
 		}));
 	return this;
