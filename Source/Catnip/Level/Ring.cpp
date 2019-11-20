@@ -79,6 +79,8 @@ void ARing::InitRing(FRingSpawnState *State)
 		this->SplineComponent->ClearSplinePoints();
 	}
 
+	this->RingRadius = State->Radius;
+
 	FVector ActorLocation = Super::GetActorLocation();
 	FRotator ActorRotation = Super::GetActorRotation();
 	auto CreateStaticMesh = [&](FVector Location, FVector Scale)

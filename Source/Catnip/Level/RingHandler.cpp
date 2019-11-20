@@ -133,11 +133,35 @@ void ARingHandler::RegisterAction()
 
 FVector ARingHandler::RestrictPositionOffset(const FVector &SplinePosition, const FVector &PositionOffset, float RadiusShrink) const
 {
-	if (PositionOffset.SizeSquared() <= FMath::Square(this->RingSpawnRadius - RadiusShrink))
+	float SplineDistance = this->GetDistanceAtInputKey(this->SplineComponent->FindInputKeyClosestToWorldLocation(SplinePosition));
+	float RingExact = SplineDistance / this->RingDistance;
+	int32 RingMin = FMath::FloorToInt(RingExact), RingMax = FMath::CeilToInt(RingExact);
+	float RingRadiusMin = -1.0f, RingRadiusMax = -1.0f;
+	for (int32 i = 0; i < this->Rings.Num(); ++i)
+	{
+		if (this->Rings[i] == nullptr)
+		{
+			continue;
+		}
+		if (this->Rings[i]->GetRingIndex() == RingMin)
+		{
+			RingRadiusMin = this->Rings[i]->GetRingRadius();
+		}
+		if (this->Rings[i]->GetRingIndex() == RingMax)
+		{
+			RingRadiusMax = this->Rings[i]->GetRingRadius();
+		}
+	}
+	float Radius = this->RingSpawnRadius;
+	if (RingRadiusMin != -1.0f && RingRadiusMax != -1.0f)
+	{
+		Radius = FMath::Lerp(RingRadiusMin, RingRadiusMax, 1.0f - (RingExact - int32(RingExact)));
+	}
+	if (PositionOffset.SizeSquared() <= FMath::Square(Radius - RadiusShrink))
 	{
 		return PositionOffset;
 	}
-	return PositionOffset.GetSafeNormal() * (this->RingSpawnRadius - RadiusShrink);
+	return PositionOffset.GetSafeNormal() * (Radius - RadiusShrink);
 }
 
 #if 0

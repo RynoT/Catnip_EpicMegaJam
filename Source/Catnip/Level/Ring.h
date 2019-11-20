@@ -42,6 +42,11 @@ public:
 		this->RingIndex = Index;
 	}
 
+	FORCEINLINE float GetRingRadius() const
+	{
+		return this->RingRadius;
+	}
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RotateSpeedMin;
@@ -69,6 +74,7 @@ protected:
 
 private:
 	int32 RingIndex;
+	float RingRadius;
 
 	float LastOpacity;
 	float RequiredOpacity;
