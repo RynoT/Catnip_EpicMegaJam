@@ -235,7 +235,7 @@ public:
 
 private:
 	int32 NextBeatRingIndex;
-	bool bNextBeatRingCompleted;
+	//bool bNextBeatRingCompleted;
 
 	float CurrentPawnDistance;
 

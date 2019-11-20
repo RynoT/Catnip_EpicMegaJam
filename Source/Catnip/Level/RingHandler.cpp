@@ -19,7 +19,7 @@ ARingHandler::ARingHandler()
 
 	this->CurrentPawnDistance = 0.0f;
 	this->NextBeatRingIndex = -1;
-	this->bNextBeatRingCompleted = false;
+	//this->bNextBeatRingCompleted = false;
 	this->BeatActionDistanceAllowance = 650.0f;
 
 	this->RingDistance = 500.0f;
@@ -101,18 +101,34 @@ void ARingHandler::BeginPlay()
 
 void ARingHandler::RegisterAction()
 {
-	if (this->NextBeatRingIndex == -1 || this->bNextBeatRingCompleted)
+	if (this->NextBeatRingIndex == -1 || this->NextBeatRingIndex >= this->BeatSpawnState.Rings.Num() || this->CurrentPawnDistance < 0.0f)
 	{
-		if (this->CurrentPawnDistance > 0.0f)
-		{
-			this->OnBeatRingFail.Broadcast(-1);
-		}
+		return;
+	}
+	float Distance = this->BeatSpawnState.Rings[this->NextBeatRingIndex] * this->RingDistance;
+	if (FMath::Abs(this->CurrentPawnDistance - Distance) <= this->BeatActionDistanceAllowance)
+	{
+		this->OnBeatRingSuccess.Broadcast(this->NextBeatRingIndex);
+		++this->NextBeatRingIndex;
 	}
 	else
 	{
-		this->bNextBeatRingCompleted = true;
-		this->OnBeatRingSuccess.Broadcast(this->NextBeatRingIndex);
+		this->OnBeatRingFail.Broadcast(-1);
 	}
+
+
+	//if (this->NextBeatRingIndex == -1 || this->bNextBeatRingCompleted)
+	//{
+	//	if (this->CurrentPawnDistance > 0.0f)
+	//	{
+	//		this->OnBeatRingFail.Broadcast(-1);
+	//	}
+	//}
+	//else
+	//{
+	//	this->bNextBeatRingCompleted = true;
+	//	this->OnBeatRingSuccess.Broadcast(this->NextBeatRingIndex);
+	//}
 }
 
 FVector ARingHandler::RestrictPositionOffset(const FVector &SplinePosition, const FVector &PositionOffset, float RadiusShrink) const
@@ -381,37 +397,51 @@ void ARingHandler::UpdateHandler(FVector PawnLocation)
 
 	this->CurrentPawnDistance = DistanceAtLocation;
 
-	// Find next beat ring.
-	int32 NextBeatRing = -1;
-	for (int32 i = 0; i < this->BeatSpawnState.Rings.Num(); ++i)
+	if (this->NextBeatRingIndex == -1 && this->BeatSpawnState.Rings.Num() > 0)
 	{
-		if (this->NextBeatRingIndex != -1 && this->BeatSpawnState.Rings[i] < this->NextBeatRingIndex)
-		{
-			continue;
-		}
-		if (FMath::Abs(this->BeatSpawnState.Rings[i] * this->RingDistance
-			- DistanceAtLocation) <= this->BeatActionDistanceAllowance)
-		{
-			NextBeatRing = this->BeatSpawnState.Rings[i];
-			break;
-		}
+		this->NextBeatRingIndex = 0;
 	}
-	if (NextBeatRing == -1 && this->NextBeatRingIndex != -1)
+	if (this->NextBeatRingIndex != -1 && this->NextBeatRingIndex < this->BeatSpawnState.Rings.Num())
 	{
-		if (!this->bNextBeatRingCompleted)
+		float Distance = this->BeatSpawnState.Rings[this->NextBeatRingIndex] * this->RingDistance;
+		if (DistanceAtLocation - Distance > this->BeatActionDistanceAllowance)
 		{
 			this->OnBeatRingFail.Broadcast(this->NextBeatRingIndex);
+			++this->NextBeatRingIndex;
 		}
-		else
-		{
-			this->bNextBeatRingCompleted = false;
-		}
-		this->NextBeatRingIndex = -1;
 	}
-	if (NextBeatRing != -1)
-	{
-		this->NextBeatRingIndex = NextBeatRing;
-	}
+
+	//// Find next beat ring.
+	//int32 NextBeatRing = -1;
+	//for (int32 i = 0; i < this->BeatSpawnState.Rings.Num(); ++i)
+	//{
+	//	if (this->NextBeatRingIndex != -1 && this->BeatSpawnState.Rings[i] < this->NextBeatRingIndex)
+	//	{
+	//		continue;
+	//	}
+	//	if (FMath::Abs(this->BeatSpawnState.Rings[i] * this->RingDistance
+	//		- DistanceAtLocation) <= this->BeatActionDistanceAllowance)
+	//	{
+	//		NextBeatRing = this->BeatSpawnState.Rings[i];
+	//		break;
+	//	}
+	//}
+	//if (NextBeatRing == -1 && this->NextBeatRingIndex != -1)
+	//{
+	//	if (!this->bNextBeatRingCompleted)
+	//	{
+	//		this->OnBeatRingFail.Broadcast(this->NextBeatRingIndex);
+	//	}
+	//	else
+	//	{
+	//		this->bNextBeatRingCompleted = false;
+	//	}
+	//	this->NextBeatRingIndex = -1;
+	//}
+	//if (NextBeatRing != -1)
+	//{
+	//	this->NextBeatRingIndex = NextBeatRing;
+	//}
 
 	// Remove unneeded rings. Update transparency of needed ones.
 	for (int32 i = 0; i < this->Rings.Num(); ++i)
