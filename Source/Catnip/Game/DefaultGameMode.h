@@ -36,6 +36,7 @@ public:
 	UFUNCTION()
 	void OnBeatRingSuccess(int32 RingIndex);
 
+	UFUNCTION(BlueprintPure, Category = "GameMode")
 	FORCEINLINE ARingHandler* GetRingHandler()
 	{
 		return this->RingHandler;
