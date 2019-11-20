@@ -74,13 +74,13 @@ void ADefaultGameMode::FindRingHandler()
 
 void ADefaultGameMode::OnBeatRingFail(int32 RingIndex)
 {
-	UE_LOG(LogTemp, Log, TEXT("FAIL %d"), RingIndex);
+	//UE_LOG(LogTemp, Log, TEXT("FAIL %d"), RingIndex);
 	--this->LifeCount;
 }
 
 void ADefaultGameMode::OnBeatRingSuccess(int32 RingIndex)
 {
-	UE_LOG(LogTemp, Log, TEXT("SUCCESS %d"), RingIndex);
+	//UE_LOG(LogTemp, Log, TEXT("SUCCESS %d"), RingIndex);
 }
 
 void ADefaultGameMode::RegisterAction()

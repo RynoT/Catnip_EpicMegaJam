@@ -117,6 +117,8 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	void FailRing(int32 Ring);
+
 	void RegisterAction();
 
 	void UpdateHandler(FVector PawnLocation);
@@ -256,6 +258,7 @@ public:
 
 private:
 	int32 NextBeatRingIndex;
+	int32 LastFailRing;
 	//bool bNextBeatRingCompleted;
 
 	float CurrentPawnDistance;

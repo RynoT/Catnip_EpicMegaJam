@@ -19,6 +19,7 @@ ARingHandler::ARingHandler()
 
 	this->CurrentPawnDistance = 0.0f;
 	this->NextBeatRingIndex = -1;
+	this->LastFailRing = -1;
 	//this->bNextBeatRingCompleted = false;
 	this->BeatActionDistanceAllowance = 650.0f;
 	this->ObstacleSpawnChancePercentage = 1.0f;
@@ -101,6 +102,17 @@ void ARingHandler::BeginPlay()
 	this->SpawnState.bSpawnObstacle = false;
 }
 
+void ARingHandler::FailRing(int32 Ring)
+{
+	if (this->LastFailRing == Ring)
+	{
+		return;
+	}
+	this->LastFailRing = Ring;
+	this->OnBeatRingFail.Broadcast(Ring);
+	//UE_LOG(LogClass, Log, TEXT("Fail Ring: %d"), Ring);
+}
+
 void ARingHandler::RegisterAction()
 {
 	if (this->NextBeatRingIndex == -1 || this->NextBeatRingIndex >= this->BeatSpawnState.Rings.Num() || this->CurrentPawnDistance < 0.0f)
@@ -115,22 +127,12 @@ void ARingHandler::RegisterAction()
 	}
 	else
 	{
-		this->OnBeatRingFail.Broadcast(-1);
+		// If clicked with no ring around.
+		//float DistToRingA = FMath::Abs(this->CurrentPawnDistance - Distance);
+		//float DistToRingB = FMath::Abs(this->CurrentPawnDistance - this->BeatSpawnState.Rings[this->NextBeatRingIndex] * this->RingDistance);
+
+		//this->OnBeatRingFail.Broadcast(-1);
 	}
-
-
-	//if (this->NextBeatRingIndex == -1 || this->bNextBeatRingCompleted)
-	//{
-	//	if (this->CurrentPawnDistance > 0.0f)
-	//	{
-	//		this->OnBeatRingFail.Broadcast(-1);
-	//	}
-	//}
-	//else
-	//{
-	//	this->bNextBeatRingCompleted = true;
-	//	this->OnBeatRingSuccess.Broadcast(this->NextBeatRingIndex);
-	//}
 }
 
 FVector ARingHandler::RestrictPositionOffset(const FVector &SplinePosition, const FVector &PositionOffset, float RadiusShrink) const
@@ -452,7 +454,8 @@ void ARingHandler::UpdateHandler(FVector PawnLocation)
 		float Distance = this->BeatSpawnState.Rings[this->NextBeatRingIndex] * this->RingDistance;
 		if (DistanceAtLocation - Distance > this->BeatActionDistanceAllowance)
 		{
-			this->OnBeatRingFail.Broadcast(this->NextBeatRingIndex);
+			//this->OnBeatRingFail.Broadcast(this->NextBeatRingIndex);
+			this->FailRing(this->BeatSpawnState.Rings[this->NextBeatRingIndex]);
 			++this->NextBeatRingIndex;
 		}
 	}
