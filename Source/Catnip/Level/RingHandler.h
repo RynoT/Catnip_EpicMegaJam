@@ -148,6 +148,13 @@ public:
 
 	ARing *SpawnRing(int32 Index);
 
+	UFUNCTION(BlueprintPure, Category = "RingHandler")
+	FORCEINLINE float GetFadeDistance() const
+	{
+		return RingFadeDistance;
+	}
+
+	UFUNCTION(BlueprintPure, Category = "RingHandler")
 	FORCEINLINE float GetRingDistance() const
 	{
 		return this->RingDistance;

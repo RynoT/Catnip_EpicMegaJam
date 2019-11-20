@@ -27,6 +27,9 @@ public:
 
 	void RegisterAction();
 
+	UFUNCTION(BlueprintCallable, Category = "GameMode")
+	void FindRingHandler();
+
 	UFUNCTION()
 	void OnBeatRingFail(int32 RingIndex);
 
@@ -39,6 +42,9 @@ public:
 	}
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameMode")
+	int32 LifeCount;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MovementSpeed;
 

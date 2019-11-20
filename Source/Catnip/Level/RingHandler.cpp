@@ -20,7 +20,7 @@ ARingHandler::ARingHandler()
 	this->CurrentPawnDistance = 0.0f;
 	this->NextBeatRingIndex = -1;
 	this->bNextBeatRingCompleted = false;
-	this->BeatActionDistanceAllowance = 750.0f;
+	this->BeatActionDistanceAllowance = 650.0f;
 
 	this->RingDistance = 500.0f;
 	this->RingFadeDistance = 8000.0f;

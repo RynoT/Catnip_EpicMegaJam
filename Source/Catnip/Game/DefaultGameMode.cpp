@@ -25,13 +25,16 @@ ADefaultGameMode::ADefaultGameMode()
 		Super::DefaultPawnClass = PawnClass.Class;
 	}
 
+	this->LifeCount = 9;
+
 	this->MovementSpeed = 1600.0f;
-	this->CurrentDistance = -5250.0f;
+	//this->CurrentDistance = -5250.0f;
 	this->InterpCameraSpeed = 5.0f;
 	this->InterpCharacterSpeed = 10.0f;
 
 	this->PlayerOffsetCache = FVector::ZeroVector;
 
+	Super::bStartPlayersAsSpectators = true;
 	Super::PrimaryActorTick.bCanEverTick = true;
 }
 
@@ -50,7 +53,11 @@ void ADefaultGameMode::BeginPlay()
 			TempArray[i]->Destroy();
 		}
 	}
-	TempArray.Empty();
+}
+
+void ADefaultGameMode::FindRingHandler()
+{
+	TArray<AActor*> TempArray;
 
 	// Set the ring handler. It should already be placed in-world.
 	UGameplayStatics::GetAllActorsOfClass(Super::GetWorld(), ARingHandler::StaticClass(), TempArray);
@@ -60,12 +67,15 @@ void ADefaultGameMode::BeginPlay()
 
 		this->RingHandler->OnBeatRingFail.AddDynamic(this, &ADefaultGameMode::OnBeatRingFail);
 		this->RingHandler->OnBeatRingSuccess.AddDynamic(this, &ADefaultGameMode::OnBeatRingSuccess);
+
+		this->CurrentDistance = -this->RingHandler->GetFadeDistance();
 	}
 }
 
 void ADefaultGameMode::OnBeatRingFail(int32 RingIndex)
 {
 	UE_LOG(LogTemp, Log, TEXT("FAIL %d"), RingIndex);
+	--this->LifeCount;
 }
 
 void ADefaultGameMode::OnBeatRingSuccess(int32 RingIndex)
