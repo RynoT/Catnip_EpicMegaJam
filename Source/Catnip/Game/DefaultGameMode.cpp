@@ -57,8 +57,67 @@ void ADefaultGameMode::BeginPlay()
 	if (ensure(TempArray.Num() == 1))
 	{
 		this->RingHandler = Cast<ARingHandler>(TempArray[0]);
-		//this->RingHandler->UpdateRings();
+
+		this->RingHandler->OnBeatRingFail.AddDynamic(this, &ADefaultGameMode::OnBeatRingFail);
+		this->RingHandler->OnBeatRingSuccess.AddDynamic(this, &ADefaultGameMode::OnBeatRingSuccess);
 	}
+}
+
+void ADefaultGameMode::OnBeatRingFail(int32 RingIndex)
+{
+	UE_LOG(LogTemp, Log, TEXT("FAIL %d"), RingIndex);
+}
+
+void ADefaultGameMode::OnBeatRingSuccess(int32 RingIndex)
+{
+	UE_LOG(LogTemp, Log, TEXT("SUCCESS %d"), RingIndex);
+}
+
+void ADefaultGameMode::RegisterAction()
+{
+	if (!ensure(this->RingHandler != nullptr))
+	{
+		return;
+	}
+	this->RingHandler->RegisterAction();
+
+	//APlayerController *Controller = Super::GetWorld()->GetFirstPlayerController();
+	//check(controller != nullptr);
+	//APawn *Pawn = Controller->GetPawn();
+	//if (Pawn == nullptr)
+	//{
+	//	return;
+	//}
+	//float PawnDistance = this->RingHandler->GetCurrentPawnDistance();
+	//const TArray<int32> &BeatRings = this->RingHandler->GetBeatRings();
+
+	//// Find nearest beat ring.
+	//int32 NearestBeatRing;
+	//float DistanceToNearest;
+	//for (int32 i = 0; i < BeatRings.Num(); ++i)
+	//{
+	//	if (BeatRings[i] < this->LastCompletedBeat)
+	//	{
+	//		continue;
+	//	}
+	//	float Distance = FMath::Abs(PawnDistance - (BeatRings[i] * this->RingHandler->GetRingDistance()));
+	//	if (i == 0 || Distance < DistanceToNearest)
+	//	{
+	//		NearestBeatRing = BeatRings[i];
+	//		DistanceToNearest = Distance;
+	//	}
+	//}
+
+	//// Check if the nearest ring is the one just completed, or if we are not within range. Fail if so.
+	//if (NearestBeatRing == this->LastCompletedBeat || DistanceToNearest > this->ActionDistanceAllowance)
+	//{
+	//	this->OnBeatFail(NearestBeatRing);
+	//	return;
+	//}
+
+	//// If here, then we were successful.
+	//this->OnBeatSuccess(NearestBeatRing);
+	//this->LastCompletedBeat = NearestBeatRing;
 }
 
 void ADefaultGameMode::Tick(float DeltaTime)

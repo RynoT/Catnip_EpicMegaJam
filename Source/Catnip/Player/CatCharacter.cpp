@@ -3,6 +3,7 @@
 
 #include "CatCharacter.h"
 
+#include "Game/DefaultGameMode.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Controller.h"
 #include "Components/InputComponent.h"
@@ -46,12 +47,11 @@ void ACatCharacter::BeginPlay()
 	this->CameraOffset = this->Camera->GetRelativeTransform().GetLocation();
 }
 
-void ACatCharacter::SetupPlayerInputComponent(UInputComponent *PlayerInputComponent)
+void ACatCharacter::Action()
 {
-	check(PlayerInputComponent);
-
-	PlayerInputComponent->BindAxis("MoveUp", this, &ACatCharacter::MoveUp);
-	PlayerInputComponent->BindAxis("MoveRight", this, &ACatCharacter::MoveRight);
+	ADefaultGameMode *GameMode = Super::GetWorld()->GetAuthGameMode<ADefaultGameMode>();
+	check(GameMode != nullptr);
+	GameMode->RegisterAction();
 }
 
 void ACatCharacter::MoveUp(float Value)
@@ -72,3 +72,12 @@ void ACatCharacter::MoveRight(float Value)
 	this->PlayerOffset += FVector::RightVector * Value;
 }
 
+void ACatCharacter::SetupPlayerInputComponent(UInputComponent *PlayerInputComponent)
+{
+	check(PlayerInputComponent);
+
+	PlayerInputComponent->BindAxis(TEXT("MoveUp"), this, &ACatCharacter::MoveUp);
+	PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &ACatCharacter::MoveRight);
+
+	PlayerInputComponent->BindAction(TEXT("Action"), EInputEvent::IE_Pressed, this, &ACatCharacter::Action);
+}

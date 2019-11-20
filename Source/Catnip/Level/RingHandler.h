@@ -14,6 +14,9 @@ struct FActiveRingSpawnRule;
 
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FRingSpawnRule, FRingSpawnState &, FActiveRingSpawnRule &);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBeatRingFail, int32, RingIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBeatRingSuccess, int32, RingIndex);
+
 UENUM(BlueprintType)
 enum class ERingMeshType : uint8
 {
@@ -99,8 +102,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-public:	
-	virtual void Tick(float DeltaTime) override;
+public:
+	void RegisterAction();
 
 	void UpdateHandler(FVector PawnLocation);
 
@@ -117,7 +120,7 @@ public:
 	void AddSpawnRule(int32 OnRing, FRingSpawnRule Rule);
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
-	ARingHandler *SpawnRule_SetBeatRings(FString Input, TArray<UStaticMesh*> Meshes, UMaterialInterface *MeshMaterial, FColor Color = FColor(240, 5, 200));
+	ARingHandler* SpawnRule_SetBeatRings(FString Input, TArray<UStaticMesh*> Meshes, UMaterialInterface *MeshMaterial, FColor Color = FColor(240, 5, 200));
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
 	ARingHandler* SpawnRule_SetRadius(int32 OnRing, float NewRadius, int32 TransitionRings = 0);
@@ -135,7 +138,7 @@ public:
 	ARingHandler* SpawnRule_SetColor(int32 OnRing, FColor Color, bool bSingleRing = false);
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
-	ARingHandler *SpawnRule_SetResolution(int32 OnRing, int32 Resolution = 12);
+	ARingHandler* SpawnRule_SetResolution(int32 OnRing, int32 Resolution = 12);
 
 #if WITH_EDITOR
 	void PostEditChangeProperty(struct FPropertyChangedEvent& event) override;
@@ -145,12 +148,30 @@ public:
 
 	ARing *SpawnRing(int32 Index);
 
+	FORCEINLINE float GetRingDistance() const
+	{
+		return this->RingDistance;
+	}
+
+	FORCEINLINE float GetCurrentPawnDistance() const
+	{
+		return this->CurrentPawnDistance;
+	}
+
 	FORCEINLINE FRingSpawnState& GetSpawnState()
 	{
 		return this->SpawnState;
 	}
 
+	FORCEINLINE const TArray<int32> &GetBeatRings() const
+	{
+		return this->BeatSpawnState.Rings;
+	}
+
 protected:
+	UPROPERTY(EditDefaultsOnly)
+	float BeatActionDistanceAllowance;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RingDistance;
 
@@ -196,7 +217,21 @@ protected:
 	UPROPERTY(EditAnywhere)
 	bool bDebugDeleteRings;
 
+public:
+	/// EVENTS ///
+
+	UPROPERTY(BlueprintAssignable, Category = "Rings")
+	FOnBeatRingFail OnBeatRingFail;
+
+	UPROPERTY(BlueprintAssignable, Category = "Rings")
+	FOnBeatRingSuccess OnBeatRingSuccess;
+
 private:
+	int32 NextBeatRingIndex;
+	bool bNextBeatRingCompleted;
+
+	float CurrentPawnDistance;
+
 	UPROPERTY()
 	FRingSpawnState SpawnState;
 
@@ -207,3 +242,22 @@ private:
 	TArray<FActiveRingSpawnRule> ActiveRules;
 	TMap<int32, TArray<FRingSpawnRule>> SpawnRuleMap;
 };
+
+/// INLINE ///
+
+FORCEINLINE void ARingHandler::AddSpawnRule(int32 OnRing, FRingSpawnRule Rule)
+{
+	--OnRing;
+
+	TArray<FRingSpawnRule> *Array;
+	if (this->SpawnRuleMap.Contains(OnRing))
+	{
+		Array = &this->SpawnRuleMap[OnRing];
+	}
+	else
+	{
+		Array = &this->SpawnRuleMap.Add(OnRing, TArray<FRingSpawnRule>());
+	}
+	check(Array != nullptr);
+	Array->Add(Rule);
+}

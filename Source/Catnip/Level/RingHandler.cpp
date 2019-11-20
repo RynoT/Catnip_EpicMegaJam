@@ -17,6 +17,11 @@ ARingHandler::ARingHandler()
 	static ConstructorHelpers::FClassFinder<ARing> ConstructorRingClass = ConstructorHelpers::FClassFinder<ARing>(CONSTRUCTOR_RING_CLASS);
 	this->RingClass = ensure(ConstructorRingClass.Succeeded()) ? ConstructorRingClass.Class : ARing::StaticClass();
 
+	this->CurrentPawnDistance = 0.0f;
+	this->NextBeatRingIndex = -1;
+	this->bNextBeatRingCompleted = false;
+	this->BeatActionDistanceAllowance = 750.0f;
+
 	this->RingDistance = 500.0f;
 	this->RingFadeDistance = 8000.0f;
 	this->bDebugUpdateRings = false;
@@ -36,7 +41,7 @@ ARingHandler::ARingHandler()
 	this->SplineComponent->SetClosedLoop(false, false);
 	this->SplineComponent->SetupAttachment(Super::RootComponent);
 
-	Super::PrimaryActorTick.bCanEverTick = true;
+	Super::PrimaryActorTick.bCanEverTick = false;
 }
 
 FVector ARingHandler::GetLocationAtDistance(float Distance) const
@@ -94,9 +99,20 @@ void ARingHandler::BeginPlay()
 	this->SpawnState.MaterialInterface = this->RingMaterialInterface;
 }
 
-void ARingHandler::Tick(float DeltaTime)
+void ARingHandler::RegisterAction()
 {
-	Super::Tick(DeltaTime);
+	if (this->NextBeatRingIndex == -1 || this->bNextBeatRingCompleted)
+	{
+		if (this->CurrentPawnDistance > 0.0f)
+		{
+			this->OnBeatRingFail.Broadcast(-1);
+		}
+	}
+	else
+	{
+		this->bNextBeatRingCompleted = true;
+		this->OnBeatRingSuccess.Broadcast(this->NextBeatRingIndex);
+	}
 }
 
 FVector ARingHandler::RestrictPositionOffset(const FVector &SplinePosition, const FVector &PositionOffset, float RadiusShrink) const
@@ -161,23 +177,6 @@ void ARingHandler::DeleteRings()
 }
 #endif
 
-void ARingHandler::AddSpawnRule(int32 OnRing, FRingSpawnRule Rule)
-{
-	--OnRing;
-
-	TArray<FRingSpawnRule> *Array;
-	if (this->SpawnRuleMap.Contains(OnRing))
-	{
-		Array = &this->SpawnRuleMap[OnRing];
-	}
-	else
-	{
-		Array = &this->SpawnRuleMap.Add(OnRing, TArray<FRingSpawnRule>());
-	}
-	check(Array != nullptr);
-	Array->Add(Rule);
-}
-
 ARingHandler* ARingHandler::SpawnRule_SetRadius(int32 OnRing, float NewRadius, int32 TransitionRings)
 {
 	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](FRingSpawnState &SpawnState, FActiveRingSpawnRule &SpawnRule)
@@ -208,8 +207,6 @@ ARingHandler* ARingHandler::SpawnRule_SetMesh(int32 OnRing, UStaticMesh *NewMesh
 				MeshTypeMemory = SpawnState.MeshType;
 				MeshMaterialMemory = SpawnState.MaterialInterface;
 			}
-			auto a = sizeof(UStaticMesh *) + sizeof(ERingMeshType) + sizeof(UMaterialInterface *);
-			auto b = sizeof(SpawnRule.CacheMemory);
 
 			SpawnState.Mesh = NewMesh;
 			SpawnState.MeshType = Type;
@@ -381,6 +378,40 @@ void ARingHandler::UpdateHandler(FVector PawnLocation)
 	const int32 MaxRings = FMath::CeilToInt(SplineLength / this->RingDistance);
 	int32 MinRing = FMath::Clamp(int32(MinDistance / this->RingDistance), 0, MaxRings);
 	int32 MaxRing = FMath::Clamp(int32(MaxDistance / this->RingDistance) + 1, 0, MaxRings);
+
+	this->CurrentPawnDistance = DistanceAtLocation;
+
+	// Find next beat ring.
+	int32 NextBeatRing = -1;
+	for (int32 i = 0; i < this->BeatSpawnState.Rings.Num(); ++i)
+	{
+		if (this->NextBeatRingIndex != -1 && this->BeatSpawnState.Rings[i] < this->NextBeatRingIndex)
+		{
+			continue;
+		}
+		if (FMath::Abs(this->BeatSpawnState.Rings[i] * this->RingDistance
+			- DistanceAtLocation) <= this->BeatActionDistanceAllowance)
+		{
+			NextBeatRing = this->BeatSpawnState.Rings[i];
+			break;
+		}
+	}
+	if (NextBeatRing == -1 && this->NextBeatRingIndex != -1)
+	{
+		if (!this->bNextBeatRingCompleted)
+		{
+			this->OnBeatRingFail.Broadcast(this->NextBeatRingIndex);
+		}
+		else
+		{
+			this->bNextBeatRingCompleted = false;
+		}
+		this->NextBeatRingIndex = -1;
+	}
+	if (NextBeatRing != -1)
+	{
+		this->NextBeatRingIndex = NextBeatRing;
+	}
 
 	// Remove unneeded rings. Update transparency of needed ones.
 	for (int32 i = 0; i < this->Rings.Num(); ++i)

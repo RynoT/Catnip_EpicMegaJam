@@ -21,6 +21,8 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	void Action();
+
 	void MoveUp(float Value);
 	void MoveRight(float Value);
 

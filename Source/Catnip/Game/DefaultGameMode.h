@@ -25,6 +25,14 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 
+	void RegisterAction();
+
+	UFUNCTION()
+	void OnBeatRingFail(int32 RingIndex);
+
+	UFUNCTION()
+	void OnBeatRingSuccess(int32 RingIndex);
+
 	FORCEINLINE ARingHandler* GetRingHandler()
 	{
 		return this->RingHandler;
