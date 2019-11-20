@@ -73,6 +73,14 @@ public:
 
 	UPROPERTY()
 	UMaterialInterface *MaterialInterface;
+
+	bool bSpawnObstacle;
+
+	UPROPERTY()
+	UStaticMesh *ObstacleMesh;
+
+	UPROPERTY()
+	UMaterialInterface *ObstacleMaterialInterface;
 };
 
 USTRUCT()
@@ -89,6 +97,12 @@ public:
 
 	UPROPERTY()
 	UMaterialInterface *MaterialInterface;
+
+	UPROPERTY()
+	TArray<UStaticMesh*> ObstacleMeshes;
+
+	UPROPERTY()
+	UMaterialInterface *ObstacleMaterialInterface;
 };
 
 UCLASS()
@@ -120,7 +134,8 @@ public:
 	void AddSpawnRule(int32 OnRing, FRingSpawnRule Rule);
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
-	ARingHandler* SpawnRule_SetBeatRings(FString Input, TArray<UStaticMesh*> Meshes, UMaterialInterface *MeshMaterial, FColor Color = FColor(240, 5, 200));
+	ARingHandler* SpawnRule_SetBeatRings(FString Input, TArray<UStaticMesh*> Meshes, UMaterialInterface *MeshMaterial,
+		FColor Color, TArray<UStaticMesh*> ObstacleMeshes, UMaterialInterface *ObstacleMaterialInterface);
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
 	ARingHandler* SpawnRule_SetRadius(int32 OnRing, float NewRadius, int32 TransitionRings = 0);
@@ -139,6 +154,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
 	ARingHandler* SpawnRule_SetResolution(int32 OnRing, int32 Resolution = 12);
+
+	UFUNCTION(BlueprintCallable, Category = "Spawn Rules")
+	ARingHandler *SpawnRule_SetObstacle(int32 OnRing, UStaticMesh *ObstacleMesh, UMaterialInterface *ObstacleMaterial);
 
 #if WITH_EDITOR
 	void PostEditChangeProperty(struct FPropertyChangedEvent& event) override;
@@ -178,6 +196,9 @@ public:
 protected:
 	UPROPERTY(EditDefaultsOnly)
 	float BeatActionDistanceAllowance;
+
+	UPROPERTY(EditDefaultsOnly)
+	float ObstacleSpawnChancePercentage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RingDistance;

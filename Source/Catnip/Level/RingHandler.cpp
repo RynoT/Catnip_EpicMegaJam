@@ -21,9 +21,10 @@ ARingHandler::ARingHandler()
 	this->NextBeatRingIndex = -1;
 	//this->bNextBeatRingCompleted = false;
 	this->BeatActionDistanceAllowance = 650.0f;
+	this->ObstacleSpawnChancePercentage = 1.0f;
 
 	this->RingDistance = 500.0f;
-	this->RingFadeDistance = 8000.0f;
+	this->RingFadeDistance = 10000.0f;
 	this->bDebugUpdateRings = false;
 	this->bDebugDeleteRings = false;
 
@@ -97,6 +98,7 @@ void ARingHandler::BeginPlay()
 	this->SpawnState.RotationSpeedMax = this->RingSpawnRotateSpeedMax;
 	this->SpawnState.RotationForceRerollMin = -1.0f;
 	this->SpawnState.MaterialInterface = this->RingMaterialInterface;
+	this->SpawnState.bSpawnObstacle = false;
 }
 
 void ARingHandler::RegisterAction()
@@ -330,7 +332,25 @@ ARingHandler* ARingHandler::SpawnRule_SetResolution(int32 OnRing, int32 Resoluti
 	return this;
 }
 
-ARingHandler* ARingHandler::SpawnRule_SetBeatRings(FString Input, TArray<UStaticMesh*> Meshes, UMaterialInterface *MeshMaterial, FColor Color)
+ARingHandler *ARingHandler::SpawnRule_SetObstacle(int32 OnRing, UStaticMesh *ObstacleMesh, UMaterialInterface *ObstacleMaterial)
+{
+	this->AddSpawnRule(OnRing, FRingSpawnRule::CreateLambda([=](FRingSpawnState &SpawnState, FActiveRingSpawnRule &SpawnRule)
+		{
+			if (SpawnRule.RingCounter >= 2)
+			{
+				SpawnState.bSpawnObstacle = false;
+				return true;
+			}
+			SpawnState.ObstacleMesh = ObstacleMesh;
+			SpawnState.ObstacleMaterialInterface = ObstacleMaterial;
+			SpawnState.bSpawnObstacle = true;
+			return false;
+		}));
+	return this;
+}
+
+ARingHandler* ARingHandler::SpawnRule_SetBeatRings(FString Input, TArray<UStaticMesh*> Meshes, UMaterialInterface *MeshMaterial,
+	FColor Color, TArray<UStaticMesh*> ObstacleMeshes, UMaterialInterface *ObstacleMaterialInterface)
 {
 	TArray<FString> StrArray;
 	Input.ParseIntoArray(StrArray, TEXT(","), true);
@@ -353,6 +373,8 @@ ARingHandler* ARingHandler::SpawnRule_SetBeatRings(FString Input, TArray<UStatic
 	this->BeatSpawnState.Meshes = Meshes;
 	this->BeatSpawnState.MaterialInterface = MeshMaterial;
 	this->BeatSpawnState.Color = Color;
+	this->BeatSpawnState.ObstacleMeshes = ObstacleMeshes;
+	this->BeatSpawnState.ObstacleMaterialInterface = ObstacleMaterialInterface;
 	return this;
 }
 
@@ -524,6 +546,12 @@ void ARingHandler::UpdateHandler(FVector PawnLocation)
 			this->SpawnRule_SetMesh(i + 1, this->BeatSpawnState.Meshes[FMath::RandRange(0, this->BeatSpawnState
 				.Meshes.Num() - 1)], this->BeatSpawnState.MaterialInterface, ERingMeshType::SingleMesh, true);
 			this->SpawnRule_SetColor(i + 1, this->BeatSpawnState.Color, true);
+
+			if (FMath::RandRange(0.0f, 1.0f) < this->ObstacleSpawnChancePercentage)
+			{
+				UStaticMesh *ObstacleMesh = this->BeatSpawnState.ObstacleMeshes[FMath::RandRange(0, this->BeatSpawnState.ObstacleMeshes.Num() - 1)];
+				this->SpawnRule_SetObstacle(i + 1, ObstacleMesh, this->BeatSpawnState.ObstacleMaterialInterface);
+			}
 		}
 
 		// If we get here it means we have to spawn the ring. First ensure any rules are set as active.

@@ -26,11 +26,17 @@ public:
 
 	void InitRing(FRingSpawnState *State);
 
+	void InitObstacle(FRingSpawnState *State);
+
 	//void UpdateColor(FLinearColor Color);
 
 	//void UpdatePoints(UStaticMesh *Mesh, bool bSingleMesh, float Radius);
 
 	void UpdateRingOpacity(float RingOpacity);
+
+	UFUNCTION()
+	void OnObstacleOverlap(UPrimitiveComponent *OverlappedComponent, AActor *OtherActor, 
+		UPrimitiveComponent *OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult &SweepResult);
 
 	FORCEINLINE int32 GetRingIndex() const
 	{

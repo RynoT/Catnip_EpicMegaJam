@@ -6,6 +6,7 @@
 #include "RingHandler.h"
 #include "Engine/World.h"
 #include "Engine/StaticMesh.h"
+#include "GameFramework/Character.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/SplineComponent.h"
 #include "Components/SplineMeshComponent.h"
@@ -159,6 +160,48 @@ void ARing::InitRing(FRingSpawnState *State)
 		}
 		this->SplineComponent->UpdateSpline();
 	}
+
+	if (State->bSpawnObstacle)
+	{
+		this->InitObstacle(State);
+	}
+}
+
+void ARing::InitObstacle(FRingSpawnState *State)
+{
+	if (State->ObstacleMesh == nullptr || State->ObstacleMaterialInterface == nullptr)
+	{
+		return;
+	}
+	UStaticMeshComponent *StaticMeshComponent = NewObject<UStaticMeshComponent>(this->SplineComponent);
+	StaticMeshComponent->SetCastShadow(false);
+	StaticMeshComponent->SetStaticMesh(State->ObstacleMesh);
+	StaticMeshComponent->SetMobility(EComponentMobility::Stationary);
+	StaticMeshComponent->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	StaticMeshComponent->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+	StaticMeshComponent->SetWorldScale3D(FVector(this->RingRadius) * 0.2f);
+	StaticMeshComponent->SetWorldLocationAndRotation(Super::GetActorLocation(), FRotator::ZeroRotator);
+	StaticMeshComponent->AttachToComponent(this->SplineComponent, FAttachmentTransformRules::KeepWorldTransform);
+	StaticMeshComponent->SetMaterial(0, State->ObstacleMaterialInterface);
+	StaticMeshComponent->AddRelativeRotation(FRotator(0.0f, 0.0f, FMath::RandRange(0.0f, PI * 2.0f)));
+	StaticMeshComponent->RegisterComponent();
+
+	StaticMeshComponent->OnComponentBeginOverlap.AddDynamic(this, &ARing::OnObstacleOverlap);
+}
+
+void ARing::OnObstacleOverlap(UPrimitiveComponent *OverlappedComponent, AActor *OtherActor, 
+	UPrimitiveComponent *OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult &SweepResult)
+{
+	if (OtherActor == nullptr || Cast<ACharacter>(OtherActor) == nullptr)
+	{
+		return;
+	}
+	if (OtherComp == nullptr)
+	{
+		return;
+	}
+	UE_LOG(LogTemp, Log, TEXT("%s"), *OtherComp->GetName());
 }
 
 #if 0
