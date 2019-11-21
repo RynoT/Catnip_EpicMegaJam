@@ -8,6 +8,7 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/StaticMesh.h"
 #include "ConstructorHelpers.h"
+#include "Game/DefaultGameMode.h"
 #include "Components/SplineComponent.h"
 
 #define CONSTRUCTOR_RING_CLASS TEXT("/Game/Blueprints/Level/BP_Ring")
@@ -17,6 +18,7 @@ ARingHandler::ARingHandler()
 	static ConstructorHelpers::FClassFinder<ARing> ConstructorRingClass = ConstructorHelpers::FClassFinder<ARing>(CONSTRUCTOR_RING_CLASS);
 	this->RingClass = ensure(ConstructorRingClass.Succeeded()) ? ConstructorRingClass.Class : ARing::StaticClass();
 
+	this->bCompleted = false;
 	this->CurrentPawnDistance = 0.0f;
 	this->NextBeatRingIndex = -1;
 	this->LastFailRing = -1;
@@ -56,7 +58,13 @@ FVector ARingHandler::GetLocationAtDistance(float Distance) const
 		FVector Direction = this->SplineComponent->GetDirectionAtSplinePoint(0, ESplineCoordinateSpace::World);
 		return Location + Direction * Distance;
 	}
-	return this->SplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+	FVector Location = this->SplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+	if (Distance > this->SplineComponent->GetSplineLength())
+	{
+		float Offset = Distance - this->SplineComponent->GetSplineLength();
+		Location += this->SplineComponent->GetDirectionAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World) * Offset;
+	}
+	return Location;
 }
 
 FRotator ARingHandler::GetRotationAtDistance(float Distance) const
@@ -492,6 +500,19 @@ void ARingHandler::UpdateHandler(FVector PawnLocation)
 	int32 MaxRing = FMath::Clamp(int32(MaxDistance / this->RingDistance) + 1, 0, MaxRings);
 
 	this->CurrentPawnDistance = DistanceAtLocation;
+
+	if (this->bCompleted)
+	{
+		return;
+	}
+	if (CurrentPercentage >= 1.0f)
+	{
+		ADefaultGameMode *GameMode = Super::GetWorld()->GetAuthGameMode<ADefaultGameMode>();
+		check(GameMode != nullptr);
+		GameMode->OnGameCompleted();
+		this->bCompleted = true;
+		return;
+	}
 
 	if (this->NextBeatRingIndex == -1 && this->BeatSpawnState.Rings.Num() > 0)
 	{
