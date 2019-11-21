@@ -6,6 +6,7 @@
 #include "RingHandler.h"
 #include "Engine/World.h"
 #include "Engine/StaticMesh.h"
+#include "Game/DefaultGameMode.h"
 #include "GameFramework/Character.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/SplineComponent.h"
@@ -20,6 +21,7 @@ ARing::ARing()
 	this->RotateSpeedMax = 25.0f;
 	this->RotateSpeedRerollZone = 5.0f;
 
+	this->bObstacleHit = false;
 	this->LastOpacity = 1.0f;
 	this->RequiredOpacity = 0.0f;
 
@@ -142,7 +144,7 @@ void ARing::InitRing(FRingSpawnState *State)
 	{
 		UStaticMeshComponent *StaticMeshComponent = CreateStaticMesh(ActorLocation, FVector(State->Radius) * 0.2f);
 		StaticMeshComponent->SetWorldRotation(Super::GetActorRotation());
-		StaticMeshComponent->AddRelativeRotation(FRotator(0.0f, 0.0f, RotationOffset));
+		StaticMeshComponent->AddLocalRotation(FRotator(0.0f, 0.0f, RotationOffset));
 		this->StaticMeshComponents.Add(StaticMeshComponent);
 	}
 	else if(State->MeshType == ERingMeshType::MultipleMesh)
@@ -176,32 +178,39 @@ void ARing::InitObstacle(FRingSpawnState *State)
 	UStaticMeshComponent *StaticMeshComponent = NewObject<UStaticMeshComponent>(this->SplineComponent);
 	StaticMeshComponent->SetCastShadow(false);
 	StaticMeshComponent->SetStaticMesh(State->ObstacleMesh);
-	StaticMeshComponent->SetMobility(EComponentMobility::Stationary);
+	StaticMeshComponent->SetMobility(EComponentMobility::Movable);
 	StaticMeshComponent->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	StaticMeshComponent->SetCollisionProfileName(TEXT("BlockAllDynamic"));
-	StaticMeshComponent->SetWorldScale3D(FVector(this->RingRadius) * 0.2f);
-	StaticMeshComponent->SetWorldLocationAndRotation(Super::GetActorLocation(), FRotator::ZeroRotator);
-	StaticMeshComponent->AttachToComponent(this->SplineComponent, FAttachmentTransformRules::KeepWorldTransform);
+	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	StaticMeshComponent->SetWorldScale3D(FVector(State->Radius) * 0.2f);
 	StaticMeshComponent->SetMaterial(0, State->ObstacleMaterialInterface);
-	StaticMeshComponent->AddRelativeRotation(FRotator(0.0f, 0.0f, FMath::RandRange(0.0f, PI * 2.0f)));
+	StaticMeshComponent->SetWorldLocationAndRotation(Super::GetActorLocation(), Super::GetActorRotation());
+	StaticMeshComponent->AddLocalRotation(FRotator(0.0f, 0.0f, FMath::RandRange(0.0f, PI * 2.0f)));
+	StaticMeshComponent->AttachToComponent(Super::RootComponent, FAttachmentTransformRules::KeepWorldTransform);
 	StaticMeshComponent->RegisterComponent();
 
+	this->ObstacleMeshComponent = StaticMeshComponent;
 	StaticMeshComponent->OnComponentBeginOverlap.AddDynamic(this, &ARing::OnObstacleOverlap);
 }
 
 void ARing::OnObstacleOverlap(UPrimitiveComponent *OverlappedComponent, AActor *OtherActor, 
 	UPrimitiveComponent *OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult &SweepResult)
 {
-	if (OtherActor == nullptr || Cast<ACharacter>(OtherActor) == nullptr)
+	if (OtherActor == nullptr || Cast<ACharacter>(OtherActor) == nullptr || OtherComp == nullptr)
 	{
 		return;
 	}
-	if (OtherComp == nullptr)
+	if (this->bObstacleHit)
 	{
 		return;
 	}
-	UE_LOG(LogTemp, Log, TEXT("%s"), *OtherComp->GetName());
+	this->bObstacleHit = true;
+
+	// Obstacle hit. Get the ring handler and broadcast the fail.
+	ADefaultGameMode *GameMode = Super::GetWorld()->GetAuthGameMode<ADefaultGameMode>();
+	check(GameMode != nullptr);
+	ARingHandler *RingHandler = GameMode->GetRingHandler();
+	check(RingHandler != nullptr);
+	RingHandler->FailRing(this->RingIndex + 1);
 }
 
 #if 0

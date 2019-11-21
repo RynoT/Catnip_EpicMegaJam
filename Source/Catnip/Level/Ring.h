@@ -75,6 +75,9 @@ protected:
 	UPROPERTY()
 	TArray<UStaticMeshComponent*> StaticMeshComponents;
 
+	UPROPERTY()
+	UStaticMeshComponent *ObstacleMeshComponent;
+
 	UPROPERTY(EditDefaultsOnly)
 	bool bDebugDisableRotation;
 
@@ -86,6 +89,7 @@ private:
 	float RequiredOpacity;
 
 	//bool bVisible;
+	bool bObstacleHit;
 	float RotateSpeed;
 };
 
