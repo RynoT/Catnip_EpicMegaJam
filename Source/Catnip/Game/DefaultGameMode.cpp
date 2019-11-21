@@ -76,6 +76,11 @@ void ADefaultGameMode::OnBeatRingFail(int32 RingIndex)
 {
 	//UE_LOG(LogTemp, Log, TEXT("FAIL %d"), RingIndex);
 	--this->LifeCount;
+
+	if (this->LifeCount == 0)
+	{
+		this->OnGameFailed();
+	}
 }
 
 void ADefaultGameMode::OnBeatRingSuccess(int32 RingIndex)
