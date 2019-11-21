@@ -763,7 +763,7 @@ void ARingHandler::PostEditChangeProperty(FPropertyChangedEvent& Event)
 		FVector Direction = this->SplineComponent->GetDirectionAtDistanceAlongSpline(0, ESplineCoordinateSpace::World);
 		
 		FVector CatLocation = Location - Direction * this->RingFadeDistance;
-		FRotator CatRotation = Direction.Rotation();
+		FRotator CatRotation = this->GetRotationAtDistance(0);
 
 		TArray<AActor*> Actors;
 		UGameplayStatics::GetAllActorsOfClass(Super::GetWorld(), ACatCharacter::StaticClass(), Actors);
