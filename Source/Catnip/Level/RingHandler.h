@@ -258,7 +258,7 @@ public:
 
 private:
 	int32 NextBeatRingIndex;
-	int32 LastFailRing;
+	int32 LastFailRing, LastSuccessRing;
 	//bool bNextBeatRingCompleted;
 
 	float CurrentPawnDistance;

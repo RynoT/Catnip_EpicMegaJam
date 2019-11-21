@@ -20,6 +20,7 @@ ARingHandler::ARingHandler()
 	this->CurrentPawnDistance = 0.0f;
 	this->NextBeatRingIndex = -1;
 	this->LastFailRing = -1;
+	this->LastSuccessRing = -1;
 	//this->bNextBeatRingCompleted = false;
 	this->BeatActionDistanceAllowance = 650.0f;
 	this->ObstacleSpawnChancePercentage = 1.0f;
@@ -104,11 +105,14 @@ void ARingHandler::BeginPlay()
 
 void ARingHandler::FailRing(int32 Ring)
 {
-	if (this->LastFailRing == Ring)
+	if (Ring != -1)
 	{
-		return;
+		if (this->LastFailRing == Ring)
+		{
+			return;
+		}
+		this->LastFailRing = Ring;
 	}
-	this->LastFailRing = Ring;
 	this->OnBeatRingFail.Broadcast(Ring);
 	//UE_LOG(LogClass, Log, TEXT("Fail Ring: %d"), Ring);
 }
@@ -119,17 +123,56 @@ void ARingHandler::RegisterAction()
 	{
 		return;
 	}
-	float Distance = this->BeatSpawnState.Rings[this->NextBeatRingIndex] * this->RingDistance;
-	if (FMath::Abs(this->CurrentPawnDistance - Distance) <= this->BeatActionDistanceAllowance)
+	auto DistanceToRing = [&](int32 Index)
+	{
+		return FMath::Abs(this->CurrentPawnDistance - this->BeatSpawnState.Rings[Index] * this->RingDistance);
+	};
+
+	if (DistanceToRing(this->NextBeatRingIndex) <= this->BeatActionDistanceAllowance)
 	{
 		this->OnBeatRingSuccess.Broadcast(this->NextBeatRingIndex);
+		this->LastSuccessRing = this->NextBeatRingIndex;
 		++this->NextBeatRingIndex;
 	}
 	else
 	{
-		// If clicked with no ring around.
-		//float DistToRingA = FMath::Abs(this->CurrentPawnDistance - Distance);
-		//float DistToRingB = FMath::Abs(this->CurrentPawnDistance - this->BeatSpawnState.Rings[this->NextBeatRingIndex] * this->RingDistance);
+		// Find distance to closest beat ring.
+		int32 ClosestIndex = 0;
+		check(this->BeatSpawnState.Rings.Num() > 0);
+		for (int32 i = 1; i < this->BeatSpawnState.Rings.Num(); ++i)
+		{
+			if (DistanceToRing(i) < DistanceToRing(ClosestIndex))
+			{
+				ClosestIndex = i;
+			}
+		}
+
+		// If distance to closest beat is greater than x2 allowance.
+		if (DistanceToRing(ClosestIndex) > this->BeatActionDistanceAllowance * 3.0f)
+		{
+			//UE_LOG(LogTemp, Log, TEXT("Fail: Too far."));
+			this->FailRing(-1);
+			return;
+		}
+
+		// If we're just before the next beat, fail the next beat.
+		if (ClosestIndex == this->NextBeatRingIndex)
+		{
+			//UE_LOG(LogTemp, Log, TEXT("Fail: Just before next beat."));
+			this->FailRing(this->BeatSpawnState.Rings[this->NextBeatRingIndex]);
+			return;
+		}
+
+		// If we just did an action after succeeding a ring.
+		if (ClosestIndex == this->LastSuccessRing)
+		{
+			//UE_LOG(LogTemp, Log, TEXT("Fail: Just after last beat."));
+			this->FailRing(-1);
+			return;
+		}
+
+		// Otherwise, if we just did an action after failing a ring, do nothing.
+		//UE_LOG(LogTemp, Log, TEXT("Fail: Ignore"));
 
 		//this->OnBeatRingFail.Broadcast(-1);
 	}
@@ -362,7 +405,12 @@ ARingHandler* ARingHandler::SpawnRule_SetBeatRings(FString Input, TArray<UStatic
 	
 	for (int32 i = 0; i < StrArray.Num(); ++i)
 	{
-		int32 Num = FCString::Atoi(*StrArray[i].TrimStartAndEnd());
+		FString Trimmed = StrArray[i].TrimStartAndEnd();
+		if (Trimmed.Len() == 0)
+		{
+			continue;
+		}
+		int32 Num = FCString::Atoi(*Trimmed);
 		if (NumArray.Contains(Num))
 		{
 			continue;
