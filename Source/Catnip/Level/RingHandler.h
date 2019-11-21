@@ -261,6 +261,7 @@ private:
 	int32 LastFailRing, LastSuccessRing;
 	//bool bNextBeatRingCompleted;
 
+	bool bCompleted;
 	float CurrentPawnDistance;
 
 	UPROPERTY()
