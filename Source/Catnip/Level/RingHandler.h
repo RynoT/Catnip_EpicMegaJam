@@ -117,6 +117,8 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	virtual void Tick(float DeltaTime) override;
+
 	void FailRing(int32 Ring);
 
 	void RegisterAction();
@@ -197,6 +199,15 @@ public:
 
 protected:
 	UPROPERTY(EditDefaultsOnly)
+	bool bDisableObstacles;
+
+	UPROPERTY(EditDefaultsOnly)
+	bool bDisableBeatRings;
+
+	UPROPERTY(EditDefaultsOnly)
+	float FailImmunityDuration;
+
+	UPROPERTY(EditDefaultsOnly)
 	float BeatActionDistanceAllowance;
 
 	UPROPERTY(EditDefaultsOnly)
@@ -241,11 +252,14 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	USplineComponent *SplineComponent;
 
-	UPROPERTY(EditAnywhere)
-	bool bDebugUpdateRings;
+	//UPROPERTY(EditAnywhere)
+	//bool bDebugUpdateRings;
+
+	//UPROPERTY(EditAnywhere)
+	//bool bDebugDeleteRings;
 
 	UPROPERTY(EditAnywhere)
-	bool bDebugDeleteRings;
+	bool bDebugPositionCat;
 
 public:
 	/// EVENTS ///
@@ -259,6 +273,7 @@ public:
 private:
 	int32 NextBeatRingIndex;
 	int32 LastFailRing, LastSuccessRing;
+	float FailImmunityCounter;
 	//bool bNextBeatRingCompleted;
 
 	bool bCompleted;

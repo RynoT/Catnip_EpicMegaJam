@@ -11,12 +11,22 @@
 #include "Game/DefaultGameMode.h"
 #include "Components/SplineComponent.h"
 
+#if WITH_EDITOR
+#include "Player/CatCharacter.h"
+#include "Kismet/GameplayStatics.h"
+#endif
+
 #define CONSTRUCTOR_RING_CLASS TEXT("/Game/Blueprints/Level/BP_Ring")
 
 ARingHandler::ARingHandler()
 {
 	static ConstructorHelpers::FClassFinder<ARing> ConstructorRingClass = ConstructorHelpers::FClassFinder<ARing>(CONSTRUCTOR_RING_CLASS);
 	this->RingClass = ensure(ConstructorRingClass.Succeeded()) ? ConstructorRingClass.Class : ARing::StaticClass();
+
+	this->bDisableObstacles = false;
+	this->bDisableBeatRings = false;
+	this->FailImmunityDuration = 1.0f;
+	this->FailImmunityCounter = 0.0f;
 
 	this->bCompleted = false;
 	this->CurrentPawnDistance = 0.0f;
@@ -29,8 +39,8 @@ ARingHandler::ARingHandler()
 
 	this->RingDistance = 500.0f;
 	this->RingFadeDistance = 10000.0f;
-	this->bDebugUpdateRings = false;
-	this->bDebugDeleteRings = false;
+	//this->bDebugUpdateRings = false;
+	//this->bDebugDeleteRings = false;
 
 	this->RingSpawnRadius = 500.0f;
 	this->RingSpawnResolution = 12;
@@ -46,7 +56,7 @@ ARingHandler::ARingHandler()
 	this->SplineComponent->SetClosedLoop(false, false);
 	this->SplineComponent->SetupAttachment(Super::RootComponent);
 
-	Super::PrimaryActorTick.bCanEverTick = false;
+	Super::PrimaryActorTick.bCanEverTick = true;
 }
 
 FVector ARingHandler::GetLocationAtDistance(float Distance) const
@@ -113,6 +123,10 @@ void ARingHandler::BeginPlay()
 
 void ARingHandler::FailRing(int32 Ring)
 {
+	if (this->FailImmunityCounter < this->FailImmunityDuration)
+	{
+		return;
+	}
 	if (Ring != -1)
 	{
 		if (this->LastFailRing == Ring)
@@ -122,7 +136,18 @@ void ARingHandler::FailRing(int32 Ring)
 		this->LastFailRing = Ring;
 	}
 	this->OnBeatRingFail.Broadcast(Ring);
+	this->FailImmunityCounter = 0.0f;
 	//UE_LOG(LogClass, Log, TEXT("Fail Ring: %d"), Ring);
+}
+
+void ARingHandler::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (this->FailImmunityCounter < this->FailImmunityDuration)
+	{
+		this->FailImmunityCounter += DeltaTime;
+	}
 }
 
 void ARingHandler::RegisterAction()
@@ -613,13 +638,13 @@ void ARingHandler::UpdateHandler(FVector PawnLocation)
 		}
 
 		// Check if ring is a beat ring.
-		if (this->BeatSpawnState.Rings.Contains(i + 1))
+		if (!this->bDisableBeatRings && this->BeatSpawnState.Rings.Contains(i + 1))
 		{
 			this->SpawnRule_SetMesh(i + 1, this->BeatSpawnState.Meshes[FMath::RandRange(0, this->BeatSpawnState
 				.Meshes.Num() - 1)], this->BeatSpawnState.MaterialInterface, ERingMeshType::SingleMesh, true);
 			this->SpawnRule_SetColor(i + 1, this->BeatSpawnState.Color, true);
 
-			if (FMath::RandRange(0.0f, 1.0f) < this->ObstacleSpawnChancePercentage)
+			if (!this->bDisableObstacles && FMath::RandRange(0.0f, 1.0f) < this->ObstacleSpawnChancePercentage)
 			{
 				UStaticMesh *ObstacleMesh = this->BeatSpawnState.ObstacleMeshes[FMath::RandRange(0, this->BeatSpawnState.ObstacleMeshes.Num() - 1)];
 				this->SpawnRule_SetObstacle(i + 1, ObstacleMesh, this->BeatSpawnState.ObstacleMaterialInterface);
@@ -732,5 +757,25 @@ void ARingHandler::PostEditChangeProperty(FPropertyChangedEvent& Event)
 	//	this->DeleteRings();
 	//	this->bDebugDeleteRings = false;
 	//}
+	if (Name == GET_MEMBER_NAME_CHECKED(ARingHandler, bDebugPositionCat))
+	{
+		FVector Location = this->SplineComponent->GetLocationAtDistanceAlongSpline(0, ESplineCoordinateSpace::World);
+		FVector Direction = this->SplineComponent->GetDirectionAtDistanceAlongSpline(0, ESplineCoordinateSpace::World);
+		
+		FVector CatLocation = Location - Direction * this->RingFadeDistance;
+		FRotator CatRotation = Direction.Rotation();
+
+		TArray<AActor*> Actors;
+		UGameplayStatics::GetAllActorsOfClass(Super::GetWorld(), ACatCharacter::StaticClass(), Actors);
+
+		for (AActor *Next : Actors)
+		{
+			if (Next == nullptr)
+			{
+				continue;
+			}
+			Next->SetActorLocationAndRotation(CatLocation, CatRotation);
+		}
+	}
 }
 #endif
