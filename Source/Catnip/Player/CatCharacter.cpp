@@ -14,6 +14,10 @@
 
 ACatCharacter::ACatCharacter()
 {
+	this->TiltSpeed = 8.0f;
+	this->TiltVerticalValue = 18.0f;
+	this->TiltHorizontalValue = 18.0f;
+
 	this->PlayerOffset = FVector::ZeroVector;
 	this->CameraOffset = FVector::ZeroVector; // Set in BeginPlay.
 
@@ -37,6 +41,8 @@ ACatCharacter::ACatCharacter()
 
 	// Set size for collision capsule.
 	Super::GetCapsuleComponent()->InitCapsuleSize(42.0f, 96.0f);
+
+	Super::PrimaryActorTick.bCanEverTick = true;
 }
 
 void ACatCharacter::BeginPlay()
@@ -45,6 +51,18 @@ void ACatCharacter::BeginPlay()
 
 	check(this->Camera != nullptr);
 	this->CameraOffset = this->Camera->GetRelativeTransform().GetLocation();
+
+	check(Super::GetMesh() != nullptr);
+	this->InitialRotation = Super::GetMesh()->GetRelativeTransform().GetRotation().Rotator();
+}
+
+void ACatCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	USkeletalMeshComponent *SkeletalMesh = Super::GetMesh();
+	SkeletalMesh->SetRelativeRotation(this->InitialRotation);
+	SkeletalMesh->AddLocalRotation(this->Tilt);
 }
 
 void ACatCharacter::Action()
@@ -56,19 +74,25 @@ void ACatCharacter::Action()
 
 void ACatCharacter::MoveUp(float Value)
 {
+	float DeltaTime = Super::GetWorld()->GetDeltaSeconds();
 	if (FMath::IsNearlyZero(Value))
 	{
+		this->Tilt.Roll = FMath::FInterpTo(this->Tilt.Roll, 0.0f , DeltaTime, this->TiltSpeed);
 		return;
 	}
+	this->Tilt.Roll = FMath::FInterpTo(this->Tilt.Roll, this->TiltVerticalValue * FMath::Clamp(Value, -1.0f, 1.0f), DeltaTime, this->TiltSpeed);
 	this->PlayerOffset += FVector::UpVector * Value;
 }
 
 void ACatCharacter::MoveRight(float Value)
 {
+	float DeltaTime = Super::GetWorld()->GetDeltaSeconds();
 	if (FMath::IsNearlyZero(Value))
 	{
+		this->Tilt.Yaw = FMath::FInterpTo(this->Tilt.Yaw, 0.0f, DeltaTime, this->TiltSpeed);
 		return;
 	}
+	this->Tilt.Yaw = FMath::FInterpTo(this->Tilt.Yaw, this->TiltHorizontalValue * FMath::Clamp(Value, -1.0f, 1.0f), DeltaTime, this->TiltSpeed);
 	this->PlayerOffset += FVector::RightVector * Value;
 }
 

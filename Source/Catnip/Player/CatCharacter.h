@@ -21,10 +21,17 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	virtual void Tick(float DeltaTime) override;
+
 	void Action();
 
 	void MoveUp(float Value);
 	void MoveRight(float Value);
+
+	FORCEINLINE const FRotator& GetTilt() const
+	{
+		return this->Tilt;
+	}
 
 	FORCEINLINE FVector &GetPlayerOffsetRef()
 	{
@@ -45,6 +52,15 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent *PlayerInputComponent) override;
 
 protected:
+	UPROPERTY(EditDefaultsOnly)
+	float TiltSpeed;
+
+	UPROPERTY(EditDefaultsOnly)
+	float TiltVerticalValue;
+
+	UPROPERTY(EditDefaultsOnly)
+	float TiltHorizontalValue;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	UCameraComponent *Camera;
 
@@ -52,6 +68,9 @@ protected:
 	USpringArmComponent *SpringArm;
 
 private:
+	FRotator Tilt;
+	FRotator InitialRotation;
+
 	FVector CameraOffset;
 	FVector PlayerOffset;
 };
