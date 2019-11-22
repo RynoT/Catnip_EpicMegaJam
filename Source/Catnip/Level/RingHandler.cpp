@@ -458,7 +458,7 @@ ARingHandler* ARingHandler::SpawnRule_SetBeatRings(FString Input, TArray<UStatic
 		{
 			continue;
 		}
-		if (NumArray[i] - NumArray[i - 1] == 1 || (i + 1 < NumArray.Num() && NumArray[i] - NumArray[i + 1] == 1))
+		if (NumArray[i] - NumArray[i - 1] == 1 || (i + 1 < NumArray.Num() && NumArray[i + 1] - NumArray[i] == 1))
 		{
 			NumArray.RemoveAt(i--);
 		}
