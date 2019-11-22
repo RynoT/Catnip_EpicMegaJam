@@ -452,6 +452,15 @@ ARingHandler* ARingHandler::SpawnRule_SetBeatRings(FString Input, TArray<UStatic
 	}
 	NumArray.Sort();
 
+	for (int32 i = 1; i < NumArray.Num(); ++i)
+	{
+		if (NumArray[i] - NumArray[i - 1] == 1)
+		{
+			NumArray.RemoveAt(i--);
+		}
+	}
+	NumArray.Shrink();
+
 	this->BeatSpawnState.Rings = NumArray;
 	this->BeatSpawnState.Meshes = Meshes;
 	this->BeatSpawnState.MaterialInterface = MeshMaterial;
