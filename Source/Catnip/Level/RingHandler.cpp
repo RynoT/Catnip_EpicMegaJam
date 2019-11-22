@@ -776,6 +776,8 @@ void ARingHandler::PostEditChangeProperty(FPropertyChangedEvent& Event)
 			}
 			Next->SetActorLocationAndRotation(CatLocation, CatRotation);
 		}
+
+		this->bDebugPositionCat = false;
 	}
 }
 #endif
